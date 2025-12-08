@@ -1,0 +1,30 @@
+{
+    "EthgasPoolSupportedTokens": [
+        "WETH"
+    ],
+    "EthgasRebateSupportedTokens": [
+        "WETH", "GWEI"
+    ],
+    "EthgasToken": {
+        "name": "ETHGas Gwei Token",
+        "symbol": "GWEI",
+        "totalSupply": "1000000000"
+    },
+    "TimelockControllerMinDelayInSecond": 3600,
+    "Tokens": {
+        "WETH": {
+            "daily_withdrawal_cap": 50,
+            "daily_payout_cap": 60,
+            "test_fund_transfer_amount": 1000,
+            "test_token": true,
+            "test_token_name": "[Test] Wrapped ETH",
+            "test_token_symbol": "WETH",
+            "test_token_decimals": 18,
+            "test_token_amt_from_req": 1
+        },
+        "GWEI": {
+            "daily_withdrawal_cap": 200,
+            "test_token_decimals": 18
+        }
+    }
+}

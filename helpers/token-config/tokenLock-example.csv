@@ -1,0 +1,3 @@
+name,beneficiary,managedAmount,unlockPeriods,unlockStartTime,unlockEndTime,initialUnlockAmount,revocable,vestingPeriods,vestingCliffTime,vestingEndTime,vestingCliffAmount
+employeeA,0x7566b700c0eaAC88b521536F4E4E1b5b9AfE6fe1,20000,12,2025-11-01T10:00:00Z,2026-10-31T09:59:00Z,1000,TRUE,12,2025-01-01T10:00:00Z,2025-12-31T09:59:00Z,1000
+investorA,0xE4014aC823f84Cb02F1eB16b52aeF85FBBE0e925,5432000,48,2026-01-01T00:00:00Z,2029-12-31T23:59:59Z,100000,FALSE,0,2000-01-01T00:00:00Z,2000-01-01T00:00:00Z,0

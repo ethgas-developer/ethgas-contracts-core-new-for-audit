@@ -1,0 +1,139 @@
+{
+    "GWEI": {
+        "token_address": "0x6f505ef110B0fef138343b769A145c46E4C4b73d"
+    },
+    "VEGWEI": {
+        "token_address": "0x32A64DAd234dbBD6d6BB79987D6484A20F6623E2"
+    },
+    "snapshotDelegateRegistry" : {
+        "address": "0x469788fe6e9e9681c6ebf3bf78e7fd26fc015446"
+    },
+    "feeDistributor" : {
+        "address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+    },
+    "WETH": {
+        "token_address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+        "impersonate_holder_address": "0x57757e3d981446d585af0d9ae4d7df6d64647806"
+    },
+    "WSTETH": {
+        "token_address": "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0",
+        "impersonate_holder_address": "0x5313b39bf226ced2332C81eB97BB28c6fD50d1a3"
+    },
+    "RETH": {
+        "token_address": "0xae78736Cd615f374D3085123A210448E74Fc6393",
+        "impersonate_holder_address": "0x86a7BF0aa71A499517F9486660B92E69c6Eab6D2"
+    },
+    "STETH": {
+        "token_address": "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84",
+        "impersonate_holder_address": "0xc2f369965d772CfAbDaC13AcF396DEEa4A864CB3"
+    },
+    "USDT": {
+        "token_address": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+        "impersonate_holder_address": "0x5754284f345afc66a98fbB0a0Afe71e0F007B949"
+    },
+    "USDC": {
+        "token_address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        "impersonate_holder_address": "0xcffad3200574698b78f32232aa9d63eabd290703"
+    },
+    "WBTC": {
+        "token_address": "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
+        "impersonate_holder_address": "0x0D0707963952f2fBA59dD06f2b425ace40b492Fe"
+    },
+    "WEETH": {
+        "token_address": "0xcd5fe23c85820f7b72d0926fc9b05b43e359b7ee",
+        "impersonate_holder_address": "0x5313b39bf226ced2332C81eB97BB28c6fD50d1a3"
+    },
+    "WEETHS": {
+        "token_address": "0x917cee801a67f933f2e6b33fc0cd1ed2d5909d88",
+        "impersonate_holder_address": "0x5313b39bf226ced2332C81eB97BB28c6fD50d1a3"
+    },
+    "EGETH": {
+        "token_address": "0x18f313fc6afc9b5fd6f0908c1b3d476e3fea1dd9",
+        "impersonate_holder_address": "0x5313b39bf226ced2332C81eB97BB28c6fD50d1a3"
+    },
+    "MSWETH": {
+        "token_address": "0x32bd822d615a3658a68b6fdd30c2fcb2c996d678",
+        "impersonate_holder_address": "0x5313b39bf226ced2332C81eB97BB28c6fD50d1a3"
+    },
+    "MSTETH": {
+        "token_address": "0x49446A0874197839D15395B908328a74ccc96Bc0",
+        "impersonate_holder_address": "0x5313b39bf226ced2332C81eB97BB28c6fD50d1a3"
+    },
+    "USDE": {
+        "token_address": "0x4c9edd5852cd905f086c759e8383e09bff1e68b3",
+        "impersonate_holder_address": "0x5313b39bf226ced2332C81eB97BB28c6fD50d1a3"
+    },
+    "CSTONE": {
+        "token_address": "0x4d831e22f062b5327dfdb15f0b6a5df20e2e3dd0",
+        "impersonate_holder_address": "0x5313b39bf226ced2332C81eB97BB28c6fD50d1a3"
+    },
+    "AMPHRETH": {
+        "token_address": "0x5fd13359ba15a84b76f7f87568309040176167cd",
+        "impersonate_holder_address": "0x5313b39bf226ced2332C81eB97BB28c6fD50d1a3"
+    },
+    "PRIMEETH": {
+        "token_address": "0x6ef3d766dfe02dc4bf04aae9122eb9a0ded25615",
+        "impersonate_holder_address": "0x5313b39bf226ced2332C81eB97BB28c6fD50d1a3"
+    },
+    "RSTETH": {
+        "token_address": "0x7a4effd87c2f3c55ca251080b1343b605f327e3a",
+        "impersonate_holder_address": "0x5313b39bf226ced2332C81eB97BB28c6fD50d1a3"
+    },
+    "LBTC": {
+        "token_address": "0x8236a87084f8b84306f72007f36f2618a5634494",
+        "impersonate_holder_address": "0x0D0707963952f2fBA59dD06f2b425ace40b492Fe"
+    },
+    "RE7LRT": {
+        "token_address": "0x84631c0d0081fde56deb72f6de77abbbf6a9f93a",
+        "impersonate_holder_address": "0x0D0707963952f2fBA59dD06f2b425ace40b492Fe"
+    },
+    "PZETH": {
+        "token_address": "0x8c9532a60e0e7c6bbd2b2c1303f63ace1c3e9811",
+        "impersonate_holder_address": "0x0D0707963952f2fBA59dD06f2b425ace40b492Fe"
+    },
+    "RSETH": {
+        "token_address": "0xa1290d69c65a6fe4df752f95823fae25cb99e5a7",
+        "impersonate_holder_address": "0x0D0707963952f2fBA59dD06f2b425ace40b492Fe"
+    },
+    "STEAKLRT": {
+        "token_address": "0xbeef69ac7870777598a04b2bd4771c71212e6abc",
+        "impersonate_holder_address": "0x0D0707963952f2fBA59dD06f2b425ace40b492Fe"
+    },
+    "EZETH": {
+        "token_address": "0xbf5495efe5db9ce00f80364c8b423567e58d2110",
+        "impersonate_holder_address": "0x0D0707963952f2fBA59dD06f2b425ace40b492Fe"
+    },
+    "FBTC": {
+        "token_address": "0xc96de26018a54d51c097160568752c4e3bd6c364",
+        "impersonate_holder_address": "0x0D0707963952f2fBA59dD06f2b425ace40b492Fe"
+    },
+    "METH": {
+        "token_address": "0xd5f7838f5c461feff7fe49ea5ebaf7728bb0adfa",
+        "impersonate_holder_address": "0x0D0707963952f2fBA59dD06f2b425ace40b492Fe"
+    },
+    "PUFETH": {
+        "token_address": "0xd9a442856c234a39a81a089c06451ebaa4306a72",
+        "impersonate_holder_address": "0x5313b39bf226ced2332C81eB97BB28c6fD50d1a3"
+    },
+    "MWBETH": {
+        "token_address": "0xe46a5e19b19711332e33f33c2db3ea143e86bc10",
+        "impersonate_holder_address": "0x5313b39bf226ced2332C81eB97BB28c6fD50d1a3"
+    },
+    "PUMPBTC": {
+        "token_address": "0xf469fbd2abcd6b9de8e169d128226c0fc90a012e",
+        "impersonate_holder_address": "0x5313b39bf226ced2332C81eB97BB28c6fD50d1a3"
+    },
+    "SWETH": {
+        "token_address": "0xf951e335afb289353dc249e82926178eac7ded78",
+        "impersonate_holder_address": "0x5313b39bf226ced2332C81eB97BB28c6fD50d1a3"
+    },
+    "RSWETH": {
+        "token_address": "0xfae103dc9cf190ed75350761e95403b7b8afa6c0",
+        "impersonate_holder_address": "0x5313b39bf226ced2332C81eB97BB28c6fD50d1a3"
+    },
+    "RANDOM": [
+        "0x8Ee4687cedF7032bc164b111e94c17394B802077",
+        "0xD46365c0a4F23E9528c2D190Bd851C78Fa85C123",
+        "0xeB33d97A1a17227614e76308AD2D5C41fAF10a13"
+    ]
+}

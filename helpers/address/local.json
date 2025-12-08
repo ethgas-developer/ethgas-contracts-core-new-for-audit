@@ -1,0 +1,22 @@
+{
+    "GWEI": {
+        "token_address": "0x1d460d731Bd5a0fF2cA07309dAEB8641a7b175A1"
+    },
+    "VEGWEI": {
+        "token_address": "0xF67e26649037695DdFAB19f4E22d5c9Fd1564592"
+    },
+    "snapshotDelegateRegistry" : {
+        "address": "0x469788fe6e9e9681c6ebf3bf78e7fd26fc015446"
+    },
+    "feeDistributor" : {
+        "address": "0x18b7CBdfFA52d1e7BB992fd50f394c5b59E20B72"
+    },
+    "WETH": {
+        "token_address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+        "impersonate_holder_address": "0x57757e3d981446d585af0d9ae4d7df6d64647806"
+    },
+    "USDT": {
+        "token_address": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+        "impersonate_holder_address": "0x5754284f345afc66a98fbB0a0Afe71e0F007B949"
+    }
+}

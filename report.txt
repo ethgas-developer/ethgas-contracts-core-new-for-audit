@@ -1,0 +1,1126 @@
+**THIS CHECKLIST IS NOT COMPLETE**. Use `--show-ignored-findings` to show all the results.
+Summary
+ - [arbitrary-send-eth](#arbitrary-send-eth) (1 results) (High)
+ - [reentrancy-eth](#reentrancy-eth) (1 results) (High)
+ - [unchecked-transfer](#unchecked-transfer) (1 results) (High)
+ - [incorrect-equality](#incorrect-equality) (1 results) (Medium)
+ - [tautology](#tautology) (2 results) (Medium)
+ - [shadowing-local](#shadowing-local) (2 results) (Low)
+ - [missing-zero-check](#missing-zero-check) (11 results) (Low)
+ - [calls-loop](#calls-loop) (1 results) (Low)
+ - [reentrancy-events](#reentrancy-events) (4 results) (Low)
+ - [timestamp](#timestamp) (6 results) (Low)
+ - [assembly](#assembly) (3 results) (Informational)
+ - [pragma](#pragma) (1 results) (Informational)
+ - [dead-code](#dead-code) (29 results) (Informational)
+ - [solc-version](#solc-version) (7 results) (Informational)
+ - [low-level-calls](#low-level-calls) (12 results) (Informational)
+ - [missing-inheritance](#missing-inheritance) (2 results) (Informational)
+ - [naming-convention](#naming-convention) (33 results) (Informational)
+ - [reentrancy-unlimited-gas](#reentrancy-unlimited-gas) (1 results) (Informational)
+ - [too-many-digits](#too-many-digits) (3 results) (Informational)
+ - [unimplemented-functions](#unimplemented-functions) (1 results) (Informational)
+ - [unused-import](#unused-import) (1 results) (Informational)
+ - [unused-state](#unused-state) (4 results) (Informational)
+ - [constable-states](#constable-states) (2 results) (Optimization)
+## arbitrary-send-eth
+Impact: High
+Confidence: Medium
+ - [ ] ID-0
+[TimelockController._execute(address,uint256,bytes)](contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L339-L346) sends eth to arbitrary user
+	Dangerous calls:
+	- [(success,None) = target.call{value: value}(data)](contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L344)
+
+contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L339-L346
+
+
+## reentrancy-eth
+Impact: High
+Confidence: Medium
+ - [ ] ID-1
+Reentrancy in [TimelockController.executeBatch(address[],uint256[],bytes[],bytes32,bytes32)](contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L313-L334):
+	External calls:
+	- [_execute(target,value,payload)](contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L330)
+		- [(success,None) = target.call{value: value}(data)](contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L344)
+	State variables written after the call(s):
+	- [_afterCall(id)](contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L333)
+		- [_timestamps[id] = _DONE_TIMESTAMP](contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L361)
+	[TimelockController._timestamps](contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L33) can be used in cross function reentrancies:
+	- [TimelockController._afterCall(bytes32)](contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L359-L362)
+	- [TimelockController._schedule(bytes32,uint256)](contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L257-L261)
+	- [TimelockController.cancel(bytes32)](contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L270-L275)
+	- [TimelockController.getTimestamp(bytes32)](contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L164-L166)
+
+contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L313-L334
+
+
+## unchecked-transfer
+Impact: High
+Confidence: Medium
+ - [ ] ID-2
+[MockLendingPool.withdraw(address,uint256,address)](contracts/test/MockLendingPool.sol#L7-L15) ignores return value by [IERC20(asset).transfer(to,amountOut)](contracts/test/MockLendingPool.sol#L13)
+
+contracts/test/MockLendingPool.sol#L7-L15
+
+
+## incorrect-equality
+Impact: Medium
+Confidence: High
+ - [ ] ID-3
+[TimelockController.isOperationDone(bytes32)](contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L156-L158) uses a dangerous strict equality:
+	- [getTimestamp(id) == _DONE_TIMESTAMP](contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L157)
+
+contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L156-L158
+
+
+## tautology
+Impact: Medium
+Confidence: High
+ - [ ] ID-4
+[MockERC20.adminSetTokenBalance(address,uint256)](contracts/test/MockERC20.sol#L58-L66) contains a tautology or contradiction:
+	- [amount >= 0](contracts/test/MockERC20.sol#L61)
+
+contracts/test/MockERC20.sol#L58-L66
+
+
+ - [ ] ID-5
+[MockERC20.adminSetTokenBalance(address,uint256)](contracts/test/MockERC20.sol#L58-L66) contains a tautology or contradiction:
+	- [amount < 0](contracts/test/MockERC20.sol#L62)
+
+contracts/test/MockERC20.sol#L58-L66
+
+
+## shadowing-local
+Impact: Low
+Confidence: High
+ - [ ] ID-6
+[MockERC20.allowance(address,address).owner](contracts/test/MockERC20.sol#L122) shadows:
+	- [Ownable.owner()](contracts/dependencies/openzeppelin/contracts/access/Ownable.sol#L43-L45) (function)
+
+contracts/test/MockERC20.sol#L122
+
+
+ - [ ] ID-7
+[MockERC20._approve(address,address,uint256).owner](contracts/test/MockERC20.sol#L307) shadows:
+	- [Ownable.owner()](contracts/dependencies/openzeppelin/contracts/access/Ownable.sol#L43-L45) (function)
+
+contracts/test/MockERC20.sol#L307
+
+
+## missing-zero-check
+Impact: Low
+Confidence: Medium
+ - [ ] ID-8
+[TransferHelper.safeApprove(address,address,uint256).token](contracts/libraries/TransferHelper.sol#L11) lacks a zero-check on :
+		- [(success,data) = token.call(abi.encodeWithSignature(approve(address,uint256),to,value))](contracts/libraries/TransferHelper.sol#L12)
+
+contracts/libraries/TransferHelper.sol#L11
+
+
+ - [ ] ID-9
+[TransferHelper.safeTransferFrom(address,address,address,uint256).from](contracts/libraries/TransferHelper.sol#L19) lacks a zero-check on :
+		- [(success,data) = token.call(abi.encodeWithSignature(transferFrom(address,address,uint256),from,to,value))](contracts/libraries/TransferHelper.sol#L20)
+
+contracts/libraries/TransferHelper.sol#L19
+
+
+ - [ ] ID-10
+[TransferHelper.balanceOf(address,address).token](contracts/libraries/TransferHelper.sol#L36) lacks a zero-check on :
+		- [(success,data) = token.call(abi.encodeWithSignature(balanceOf(address),account))](contracts/libraries/TransferHelper.sol#L37)
+
+contracts/libraries/TransferHelper.sol#L36
+
+
+ - [ ] ID-11
+[TransferHelper.safeTransferFrom(address,address,address,uint256).token](contracts/libraries/TransferHelper.sol#L19) lacks a zero-check on :
+		- [(success,data) = token.call(abi.encodeWithSignature(transferFrom(address,address,uint256),from,to,value))](contracts/libraries/TransferHelper.sol#L20)
+
+contracts/libraries/TransferHelper.sol#L19
+
+
+ - [ ] ID-12
+[TransferHelper.safeTransfer(address,address,uint256).to](contracts/libraries/TransferHelper.sol#L27) lacks a zero-check on :
+		- [(success,data) = token.call(abi.encodeWithSignature(transfer(address,uint256),to,value))](contracts/libraries/TransferHelper.sol#L28)
+
+contracts/libraries/TransferHelper.sol#L27
+
+
+ - [ ] ID-13
+[EthgasPoolBalance.setEthgasPool(address)._ethgasPool](contracts/test/EthgasPoolBalance.sol#L14) lacks a zero-check on :
+		- [ethgasPool = _ethgasPool](contracts/test/EthgasPoolBalance.sol#L15)
+
+contracts/test/EthgasPoolBalance.sol#L14
+
+
+ - [ ] ID-14
+[TransferHelper.safeTransfer(address,address,uint256).token](contracts/libraries/TransferHelper.sol#L27) lacks a zero-check on :
+		- [(success,data) = token.call(abi.encodeWithSignature(transfer(address,uint256),to,value))](contracts/libraries/TransferHelper.sol#L28)
+
+contracts/libraries/TransferHelper.sol#L27
+
+
+ - [ ] ID-15
+[TransferHelper.safeApprove(address,address,uint256).to](contracts/libraries/TransferHelper.sol#L11) lacks a zero-check on :
+		- [(success,data) = token.call(abi.encodeWithSignature(approve(address,uint256),to,value))](contracts/libraries/TransferHelper.sol#L12)
+
+contracts/libraries/TransferHelper.sol#L11
+
+
+ - [ ] ID-16
+[EthgasPoolBalance.constructor(address)._ethgasPool](contracts/test/EthgasPoolBalance.sol#L10) lacks a zero-check on :
+		- [ethgasPool = _ethgasPool](contracts/test/EthgasPoolBalance.sol#L11)
+
+contracts/test/EthgasPoolBalance.sol#L10
+
+
+ - [ ] ID-17
+[TransferHelper.balanceOf(address,address).account](contracts/libraries/TransferHelper.sol#L36) lacks a zero-check on :
+		- [(success,data) = token.call(abi.encodeWithSignature(balanceOf(address),account))](contracts/libraries/TransferHelper.sol#L37)
+
+contracts/libraries/TransferHelper.sol#L36
+
+
+ - [ ] ID-18
+[TransferHelper.safeTransferFrom(address,address,address,uint256).to](contracts/libraries/TransferHelper.sol#L19) lacks a zero-check on :
+		- [(success,data) = token.call(abi.encodeWithSignature(transferFrom(address,address,uint256),from,to,value))](contracts/libraries/TransferHelper.sol#L20)
+
+contracts/libraries/TransferHelper.sol#L19
+
+
+## calls-loop
+Impact: Low
+Confidence: Medium
+ - [ ] ID-19
+[TimelockController._execute(address,uint256,bytes)](contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L339-L346) has external calls inside a loop: [(success,None) = target.call{value: value}(data)](contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L344)
+
+contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L339-L346
+
+
+## reentrancy-events
+Impact: Low
+Confidence: Medium
+ - [ ] ID-20
+Reentrancy in [TransferFundHelper.serverTransferFund(bool,address,IEthgasPool.TokenTransfer[],mapping(address => uint256),mapping(address => uint256),mapping(address => uint256))](contracts/libraries/TransferFundHelper.sol#L17-L49):
+	External calls:
+	- [TransferHelper.balanceOf(tt.token,address(this)) < tt.amount](contracts/libraries/TransferFundHelper.sol#L27)
+	- [TransferHelper.safeTransfer(tt.token,clientAddress,tt.amount)](contracts/libraries/TransferFundHelper.sol#L38)
+	- [TransferHelper.safeTransfer(tt.token,clientAddress,tt.amount)](contracts/libraries/TransferFundHelper.sol#L41)
+	Event emitted after the call(s):
+	- [Withdrawal(clientAddress,tt)](contracts/libraries/TransferFundHelper.sol#L39)
+	- [Withdrawal(clientAddress,tt)](contracts/libraries/TransferFundHelper.sol#L43)
+
+contracts/libraries/TransferFundHelper.sol#L17-L49
+
+
+ - [ ] ID-21
+Reentrancy in [TimelockController.execute(address,uint256,bytes,bytes32,bytes32)](contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L289-L302):
+	External calls:
+	- [_execute(target,value,payload)](contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L299)
+		- [(success,None) = target.call{value: value}(data)](contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L344)
+	Event emitted after the call(s):
+	- [CallExecuted(id,0,target,value,payload)](contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L300)
+
+contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L289-L302
+
+
+ - [ ] ID-22
+Reentrancy in [DepositHelper.deposit(IEthgasPool.TokenTransfer[],IWETH,mapping(address => uint256))](contracts/libraries/DepositHelper.sol#L20-L50):
+	External calls:
+	- [balance = TransferHelper.balanceOf(tokenTransfers[i].token,address(msg.sender))](contracts/libraries/DepositHelper.sol#L31)
+	- [TransferHelper.safeTransferFrom(tokenTransfers[i].token,msg.sender,address(this),tokenAmount)](contracts/libraries/DepositHelper.sol#L35)
+	- [IWETH(weth).deposit{value: msg.value}()](contracts/libraries/DepositHelper.sol#L43)
+	External calls sending eth:
+	- [IWETH(weth).deposit{value: msg.value}()](contracts/libraries/DepositHelper.sol#L43)
+	Event emitted after the call(s):
+	- [DepositsTriggered(msg.sender,tt)](contracts/libraries/DepositHelper.sol#L47-L49)
+
+contracts/libraries/DepositHelper.sol#L20-L50
+
+
+ - [ ] ID-23
+Reentrancy in [TimelockController.executeBatch(address[],uint256[],bytes[],bytes32,bytes32)](contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L313-L334):
+	External calls:
+	- [_execute(target,value,payload)](contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L330)
+		- [(success,None) = target.call{value: value}(data)](contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L344)
+	Event emitted after the call(s):
+	- [CallExecuted(id,i,target,value,payload)](contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L331)
+
+contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L313-L334
+
+
+## timestamp
+Impact: Low
+Confidence: Medium
+ - [ ] ID-24
+[TimelockController.isOperationReady(bytes32)](contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L148-L151) uses timestamp for comparisons
+	Dangerous comparisons:
+	- [timestamp > _DONE_TIMESTAMP && timestamp <= block.timestamp](contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L150)
+
+contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L148-L151
+
+
+ - [ ] ID-25
+[TimelockController._beforeCall(bytes32,bytes32)](contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L351-L354) uses timestamp for comparisons
+	Dangerous comparisons:
+	- [require(bool,string)(predecessor == bytes32(0) || isOperationDone(predecessor),TimelockController: missing dependency)](contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L353)
+
+contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L351-L354
+
+
+ - [ ] ID-26
+[TimelockController.isOperationPending(bytes32)](contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L141-L143) uses timestamp for comparisons
+	Dangerous comparisons:
+	- [getTimestamp(id) > _DONE_TIMESTAMP](contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L142)
+
+contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L141-L143
+
+
+ - [ ] ID-27
+[TransferFundHelper.serverTransferFund(bool,address,IEthgasPool.TokenTransfer[],mapping(address => uint256),mapping(address => uint256),mapping(address => uint256))](contracts/libraries/TransferFundHelper.sol#L17-L49) uses timestamp for comparisons
+	Dangerous comparisons:
+	- [block.timestamp - lastWithdrawalTime[tt.token] > 86400](contracts/libraries/TransferFundHelper.sol#L32)
+
+contracts/libraries/TransferFundHelper.sol#L17-L49
+
+
+ - [ ] ID-28
+[TimelockController.isOperationDone(bytes32)](contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L156-L158) uses timestamp for comparisons
+	Dangerous comparisons:
+	- [getTimestamp(id) == _DONE_TIMESTAMP](contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L157)
+
+contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L156-L158
+
+
+ - [ ] ID-29
+[TimelockController.isOperation(bytes32)](contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L134-L136) uses timestamp for comparisons
+	Dangerous comparisons:
+	- [getTimestamp(id) > 0](contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L135)
+
+contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L134-L136
+
+
+## assembly
+Impact: Informational
+Confidence: High
+ - [ ] ID-30
+[AddressUpgradeable.verifyCallResult(bool,bytes,string)](contracts/dependencies/openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol#L174-L194) uses assembly
+	- [INLINE ASM](contracts/dependencies/openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol#L186-L189)
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol#L174-L194
+
+
+ - [ ] ID-31
+[Address.verifyCallResult(bool,bytes,string)](contracts/dependencies/openzeppelin/contracts/utils/Address.sol#L201-L221) uses assembly
+	- [INLINE ASM](contracts/dependencies/openzeppelin/contracts/utils/Address.sol#L213-L216)
+
+contracts/dependencies/openzeppelin/contracts/utils/Address.sol#L201-L221
+
+
+ - [ ] ID-32
+[ERC721._checkOnERC721Received(address,address,uint256,bytes)](contracts/dependencies/openzeppelin/contracts/token/ERC721/ERC721.sol#L394-L416) uses assembly
+	- [INLINE ASM](contracts/dependencies/openzeppelin/contracts/token/ERC721/ERC721.sol#L408-L410)
+
+contracts/dependencies/openzeppelin/contracts/token/ERC721/ERC721.sol#L394-L416
+
+
+## pragma
+Impact: Informational
+Confidence: High
+ - [ ] ID-33
+7 different versions of Solidity are used:
+	- Version constraint ^0.8.12 is used by:
+		-[^0.8.12](contracts/EthgasPool.sol#L2)
+		-[^0.8.12](contracts/configuration/ACLManager.sol#L2)
+		-[^0.8.12](contracts/interfaces/IACLManager.sol#L2)
+		-[^0.8.12](contracts/interfaces/IEthgasPool.sol#L2)
+		-[^0.8.12](contracts/interfaces/IWETH.sol#L3)
+		-[^0.8.12](contracts/libraries/DepositHelper.sol#L2)
+		-[^0.8.12](contracts/libraries/TransferFundHelper.sol#L2)
+		-[^0.8.12](contracts/libraries/TransferHelper.sol#L2)
+		-[^0.8.12](contracts/test/EthgasPoolBalance.sol#L2)
+	- Version constraint ^0.8.0 is used by:
+		-[^0.8.0](contracts/dependencies/openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol#L4)
+		-[^0.8.0](contracts/dependencies/openzeppelin/contracts-upgradeable/access/IAccessControlUpgradeable.sol#L4)
+		-[^0.8.0](contracts/dependencies/openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol#L4)
+		-[^0.8.0](contracts/dependencies/openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol#L4)
+		-[^0.8.0](contracts/dependencies/openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol#L4)
+		-[^0.8.0](contracts/dependencies/openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol#L4)
+		-[^0.8.0](contracts/dependencies/openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol#L4)
+		-[^0.8.0](contracts/dependencies/openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol#L4)
+		-[^0.8.0](contracts/dependencies/openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeable.sol#L4)
+		-[^0.8.0](contracts/dependencies/openzeppelin/contracts/access/AccessControl.sol#L4)
+		-[^0.8.0](contracts/dependencies/openzeppelin/contracts/access/IAccessControl.sol#L4)
+		-[^0.8.0](contracts/dependencies/openzeppelin/contracts/access/Ownable.sol#L4)
+		-[^0.8.0](contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L4)
+		-[^0.8.0](contracts/dependencies/openzeppelin/contracts/token/ERC1155/IERC1155.sol#L4)
+		-[^0.8.0](contracts/dependencies/openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol#L4)
+		-[^0.8.0](contracts/dependencies/openzeppelin/contracts/token/ERC1155/extensions/IERC1155MetadataURI.sol#L4)
+		-[^0.8.0](contracts/dependencies/openzeppelin/contracts/token/ERC1155/utils/ERC1155Receiver.sol#L4)
+		-[^0.8.0](contracts/dependencies/openzeppelin/contracts/token/ERC20/ERC20.sol#L4)
+		-[^0.8.0](contracts/dependencies/openzeppelin/contracts/token/ERC20/IERC20.sol#L4)
+		-[^0.8.0](contracts/dependencies/openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol#L4)
+		-[^0.8.0](contracts/dependencies/openzeppelin/contracts/token/ERC721/ERC721.sol#L4)
+		-[^0.8.0](contracts/dependencies/openzeppelin/contracts/token/ERC721/IERC721.sol#L4)
+		-[^0.8.0](contracts/dependencies/openzeppelin/contracts/token/ERC721/IERC721Receiver.sol#L4)
+		-[^0.8.0](contracts/dependencies/openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol#L4)
+		-[^0.8.0](contracts/dependencies/openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol#L4)
+		-[^0.8.0](contracts/dependencies/openzeppelin/contracts/utils/Context.sol#L4)
+		-[^0.8.0](contracts/dependencies/openzeppelin/contracts/utils/Strings.sol#L4)
+		-[^0.8.0](contracts/dependencies/openzeppelin/contracts/utils/introspection/ERC165.sol#L4)
+		-[^0.8.0](contracts/dependencies/openzeppelin/contracts/utils/introspection/IERC165.sol#L4)
+		-[^0.8.0](contracts/test/MockERC20.sol#L3)
+		-[^0.8.0](contracts/test/MockWETH.sol#L3)
+	- Version constraint ^0.8.2 is used by:
+		-[^0.8.2](contracts/dependencies/openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol#L4)
+	- Version constraint ^0.8.1 is used by:
+		-[^0.8.1](contracts/dependencies/openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol#L4)
+		-[^0.8.1](contracts/dependencies/openzeppelin/contracts/utils/Address.sol#L4)
+	- Version constraint 0.8.12 is used by:
+		-[0.8.12](contracts/dependencies/openzeppelin/contracts/utils/Pausable.sol#L4)
+		-[0.8.12](contracts/dependencies/openzeppelin/contracts/utils/ReentrancyGuard.sol#L4)
+		-[0.8.12](contracts/test/MockLendingPool.sol#L2)
+	- Version constraint >=0.8.12 is used by:
+		-[>=0.8.12](contracts/test/CheckTokenBalance.sol#L2)
+	- Version constraint >=0.7.6 is used by:
+		-[>=0.7.6](contracts/test/TestERC20.sol#L2)
+
+contracts/EthgasPool.sol#L2
+
+
+## dead-code
+Impact: Informational
+Confidence: Medium
+ - [ ] ID-34
+[ContextUpgradeable._msgData()](contracts/dependencies/openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol#L27-L29) is never used and should be removed
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol#L27-L29
+
+
+ - [ ] ID-35
+[PausableUpgradeable._unpause()](contracts/dependencies/openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol#L106-L109) is never used and should be removed
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol#L106-L109
+
+
+ - [ ] ID-36
+[PausableUpgradeable._requirePaused()](contracts/dependencies/openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol#L83-L85) is never used and should be removed
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol#L83-L85
+
+
+ - [ ] ID-37
+[AccessControlUpgradeable.__AccessControl_init()](contracts/dependencies/openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol#L51-L52) is never used and should be removed
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol#L51-L52
+
+
+ - [ ] ID-38
+[ContextUpgradeable.__Context_init_unchained()](contracts/dependencies/openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol#L21-L22) is never used and should be removed
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol#L21-L22
+
+
+ - [ ] ID-39
+[ERC165Upgradeable.__ERC165_init_unchained()](contracts/dependencies/openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol#L27-L28) is never used and should be removed
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol#L27-L28
+
+
+ - [ ] ID-40
+[ERC721._burn(uint256)](contracts/dependencies/openzeppelin/contracts/token/ERC721/ERC721.sol#L303-L317) is never used and should be removed
+
+contracts/dependencies/openzeppelin/contracts/token/ERC721/ERC721.sol#L303-L317
+
+
+ - [ ] ID-41
+[PausableUpgradeable.__Pausable_init()](contracts/dependencies/openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol#L34-L36) is never used and should be removed
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol#L34-L36
+
+
+ - [ ] ID-42
+[MockERC20._burn(address,uint256)](contracts/test/MockERC20.sol#L276-L291) is never used and should be removed
+
+contracts/test/MockERC20.sol#L276-L291
+
+
+ - [ ] ID-43
+[ERC20._burn(address,uint256)](contracts/dependencies/openzeppelin/contracts/token/ERC20/ERC20.sol#L280-L295) is never used and should be removed
+
+contracts/dependencies/openzeppelin/contracts/token/ERC20/ERC20.sol#L280-L295
+
+
+ - [ ] ID-44
+[ReentrancyGuardUpgradeable.__ReentrancyGuard_init()](contracts/dependencies/openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol#L40-L42) is never used and should be removed
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol#L40-L42
+
+
+ - [ ] ID-45
+[OwnableUpgradeable.__Ownable_init()](contracts/dependencies/openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol#L29-L31) is never used and should be removed
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol#L29-L31
+
+
+ - [ ] ID-46
+[AccessControlUpgradeable._setRoleAdmin(bytes32,bytes32)](contracts/dependencies/openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol#L220-L224) is never used and should be removed
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol#L220-L224
+
+
+ - [ ] ID-47
+[Context._msgData()](contracts/dependencies/openzeppelin/contracts/utils/Context.sol#L21-L23) is never used and should be removed
+
+contracts/dependencies/openzeppelin/contracts/utils/Context.sol#L21-L23
+
+
+ - [ ] ID-48
+[ERC165Upgradeable.__ERC165_init()](contracts/dependencies/openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol#L24-L25) is never used and should be removed
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol#L24-L25
+
+
+ - [ ] ID-49
+[ERC721._safeMint(address,uint256,bytes)](contracts/dependencies/openzeppelin/contracts/token/ERC721/ERC721.sol#L255-L265) is never used and should be removed
+
+contracts/dependencies/openzeppelin/contracts/token/ERC721/ERC721.sol#L255-L265
+
+
+ - [ ] ID-50
+[PausableUpgradeable._pause()](contracts/dependencies/openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol#L94-L97) is never used and should be removed
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol#L94-L97
+
+
+ - [ ] ID-51
+[AccessControlUpgradeable.__AccessControl_init_unchained()](contracts/dependencies/openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol#L54-L55) is never used and should be removed
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol#L54-L55
+
+
+ - [ ] ID-52
+[AccessControlUpgradeable._setupRole(bytes32,address)](contracts/dependencies/openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol#L211-L213) is never used and should be removed
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol#L211-L213
+
+
+ - [ ] ID-53
+[OwnableUpgradeable.__Ownable_init_unchained()](contracts/dependencies/openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol#L33-L35) is never used and should be removed
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol#L33-L35
+
+
+ - [ ] ID-54
+[ReentrancyGuardUpgradeable.__ReentrancyGuard_init_unchained()](contracts/dependencies/openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol#L44-L46) is never used and should be removed
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol#L44-L46
+
+
+ - [ ] ID-55
+[Initializable._disableInitializers()](contracts/dependencies/openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol#L131-L137) is never used and should be removed
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol#L131-L137
+
+
+ - [ ] ID-56
+[ERC721._mint(address,uint256)](contracts/dependencies/openzeppelin/contracts/token/ERC721/ERC721.sol#L279-L291) is never used and should be removed
+
+contracts/dependencies/openzeppelin/contracts/token/ERC721/ERC721.sol#L279-L291
+
+
+ - [ ] ID-57
+[ERC721._safeMint(address,uint256)](contracts/dependencies/openzeppelin/contracts/token/ERC721/ERC721.sol#L247-L249) is never used and should be removed
+
+contracts/dependencies/openzeppelin/contracts/token/ERC721/ERC721.sol#L247-L249
+
+
+ - [ ] ID-58
+[ERC20._mint(address,uint256)](contracts/dependencies/openzeppelin/contracts/token/ERC20/ERC20.sol#L257-L267) is never used and should be removed
+
+contracts/dependencies/openzeppelin/contracts/token/ERC20/ERC20.sol#L257-L267
+
+
+ - [ ] ID-59
+[ReentrancyGuard._reentrancyGuardEntered()](contracts/dependencies/openzeppelin/contracts/utils/ReentrancyGuard.sol#L84-L86) is never used and should be removed
+
+contracts/dependencies/openzeppelin/contracts/utils/ReentrancyGuard.sol#L84-L86
+
+
+ - [ ] ID-60
+[PausableUpgradeable.__Pausable_init_unchained()](contracts/dependencies/openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol#L38-L40) is never used and should be removed
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol#L38-L40
+
+
+ - [ ] ID-61
+[ContextUpgradeable.__Context_init()](contracts/dependencies/openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol#L18-L19) is never used and should be removed
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol#L18-L19
+
+
+ - [ ] ID-62
+[PausableUpgradeable._requireNotPaused()](contracts/dependencies/openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol#L76-L78) is never used and should be removed
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol#L76-L78
+
+
+## solc-version
+Impact: Informational
+Confidence: High
+ - [ ] ID-63
+Version constraint ^0.8.1 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)
+	- FullInlinerNonExpressionSplitArgumentEvaluationOrder
+	- MissingSideEffectsOnSelectorAccess
+	- AbiReencodingHeadOverflowWithStaticArrayCleanup
+	- DirtyBytesArrayToStorage
+	- DataLocationChangeInInternalOverride
+	- NestedCalldataArrayAbiReencodingSizeValidation
+	- SignedImmutables
+	- ABIDecodeTwoDimensionalArrayMemory
+	- KeccakCaching.
+It is used by:
+	- [^0.8.1](contracts/dependencies/openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol#L4)
+	- [^0.8.1](contracts/dependencies/openzeppelin/contracts/utils/Address.sol#L4)
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol#L4
+
+
+ - [ ] ID-64
+Version constraint ^0.8.2 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)
+	- FullInlinerNonExpressionSplitArgumentEvaluationOrder
+	- MissingSideEffectsOnSelectorAccess
+	- AbiReencodingHeadOverflowWithStaticArrayCleanup
+	- DirtyBytesArrayToStorage
+	- DataLocationChangeInInternalOverride
+	- NestedCalldataArrayAbiReencodingSizeValidation
+	- SignedImmutables
+	- ABIDecodeTwoDimensionalArrayMemory
+	- KeccakCaching.
+It is used by:
+	- [^0.8.2](contracts/dependencies/openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol#L4)
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol#L4
+
+
+ - [ ] ID-65
+Version constraint ^0.8.0 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)
+	- FullInlinerNonExpressionSplitArgumentEvaluationOrder
+	- MissingSideEffectsOnSelectorAccess
+	- AbiReencodingHeadOverflowWithStaticArrayCleanup
+	- DirtyBytesArrayToStorage
+	- DataLocationChangeInInternalOverride
+	- NestedCalldataArrayAbiReencodingSizeValidation
+	- SignedImmutables
+	- ABIDecodeTwoDimensionalArrayMemory
+	- KeccakCaching.
+It is used by:
+	- [^0.8.0](contracts/dependencies/openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol#L4)
+	- [^0.8.0](contracts/dependencies/openzeppelin/contracts-upgradeable/access/IAccessControlUpgradeable.sol#L4)
+	- [^0.8.0](contracts/dependencies/openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol#L4)
+	- [^0.8.0](contracts/dependencies/openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol#L4)
+	- [^0.8.0](contracts/dependencies/openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol#L4)
+	- [^0.8.0](contracts/dependencies/openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol#L4)
+	- [^0.8.0](contracts/dependencies/openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol#L4)
+	- [^0.8.0](contracts/dependencies/openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol#L4)
+	- [^0.8.0](contracts/dependencies/openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeable.sol#L4)
+	- [^0.8.0](contracts/dependencies/openzeppelin/contracts/access/AccessControl.sol#L4)
+	- [^0.8.0](contracts/dependencies/openzeppelin/contracts/access/IAccessControl.sol#L4)
+	- [^0.8.0](contracts/dependencies/openzeppelin/contracts/access/Ownable.sol#L4)
+	- [^0.8.0](contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L4)
+	- [^0.8.0](contracts/dependencies/openzeppelin/contracts/token/ERC1155/IERC1155.sol#L4)
+	- [^0.8.0](contracts/dependencies/openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol#L4)
+	- [^0.8.0](contracts/dependencies/openzeppelin/contracts/token/ERC1155/extensions/IERC1155MetadataURI.sol#L4)
+	- [^0.8.0](contracts/dependencies/openzeppelin/contracts/token/ERC1155/utils/ERC1155Receiver.sol#L4)
+	- [^0.8.0](contracts/dependencies/openzeppelin/contracts/token/ERC20/ERC20.sol#L4)
+	- [^0.8.0](contracts/dependencies/openzeppelin/contracts/token/ERC20/IERC20.sol#L4)
+	- [^0.8.0](contracts/dependencies/openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol#L4)
+	- [^0.8.0](contracts/dependencies/openzeppelin/contracts/token/ERC721/ERC721.sol#L4)
+	- [^0.8.0](contracts/dependencies/openzeppelin/contracts/token/ERC721/IERC721.sol#L4)
+	- [^0.8.0](contracts/dependencies/openzeppelin/contracts/token/ERC721/IERC721Receiver.sol#L4)
+	- [^0.8.0](contracts/dependencies/openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol#L4)
+	- [^0.8.0](contracts/dependencies/openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol#L4)
+	- [^0.8.0](contracts/dependencies/openzeppelin/contracts/utils/Context.sol#L4)
+	- [^0.8.0](contracts/dependencies/openzeppelin/contracts/utils/Strings.sol#L4)
+	- [^0.8.0](contracts/dependencies/openzeppelin/contracts/utils/introspection/ERC165.sol#L4)
+	- [^0.8.0](contracts/dependencies/openzeppelin/contracts/utils/introspection/IERC165.sol#L4)
+	- [^0.8.0](contracts/test/MockERC20.sol#L3)
+	- [^0.8.0](contracts/test/MockWETH.sol#L3)
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol#L4
+
+
+ - [ ] ID-66
+Version constraint >=0.8.12 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)
+	- VerbatimInvalidDeduplication
+	- FullInlinerNonExpressionSplitArgumentEvaluationOrder
+	- MissingSideEffectsOnSelectorAccess
+	- AbiReencodingHeadOverflowWithStaticArrayCleanup
+	- DirtyBytesArrayToStorage
+	- DataLocationChangeInInternalOverride
+	- NestedCalldataArrayAbiReencodingSizeValidation
+	- AbiEncodeCallLiteralAsFixedBytesBug.
+It is used by:
+	- [>=0.8.12](contracts/test/CheckTokenBalance.sol#L2)
+
+contracts/test/CheckTokenBalance.sol#L2
+
+
+ - [ ] ID-67
+Version constraint ^0.8.12 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)
+	- VerbatimInvalidDeduplication
+	- FullInlinerNonExpressionSplitArgumentEvaluationOrder
+	- MissingSideEffectsOnSelectorAccess
+	- AbiReencodingHeadOverflowWithStaticArrayCleanup
+	- DirtyBytesArrayToStorage
+	- DataLocationChangeInInternalOverride
+	- NestedCalldataArrayAbiReencodingSizeValidation
+	- AbiEncodeCallLiteralAsFixedBytesBug.
+It is used by:
+	- [^0.8.12](contracts/EthgasPool.sol#L2)
+	- [^0.8.12](contracts/configuration/ACLManager.sol#L2)
+	- [^0.8.12](contracts/interfaces/IACLManager.sol#L2)
+	- [^0.8.12](contracts/interfaces/IEthgasPool.sol#L2)
+	- [^0.8.12](contracts/interfaces/IWETH.sol#L3)
+	- [^0.8.12](contracts/libraries/DepositHelper.sol#L2)
+	- [^0.8.12](contracts/libraries/TransferFundHelper.sol#L2)
+	- [^0.8.12](contracts/libraries/TransferHelper.sol#L2)
+	- [^0.8.12](contracts/test/EthgasPoolBalance.sol#L2)
+
+contracts/EthgasPool.sol#L2
+
+
+ - [ ] ID-68
+Version constraint 0.8.12 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)
+	- VerbatimInvalidDeduplication
+	- FullInlinerNonExpressionSplitArgumentEvaluationOrder
+	- MissingSideEffectsOnSelectorAccess
+	- AbiReencodingHeadOverflowWithStaticArrayCleanup
+	- DirtyBytesArrayToStorage
+	- DataLocationChangeInInternalOverride
+	- NestedCalldataArrayAbiReencodingSizeValidation
+	- AbiEncodeCallLiteralAsFixedBytesBug.
+It is used by:
+	- [0.8.12](contracts/dependencies/openzeppelin/contracts/utils/Pausable.sol#L4)
+	- [0.8.12](contracts/dependencies/openzeppelin/contracts/utils/ReentrancyGuard.sol#L4)
+	- [0.8.12](contracts/test/MockLendingPool.sol#L2)
+
+contracts/dependencies/openzeppelin/contracts/utils/Pausable.sol#L4
+
+
+ - [ ] ID-69
+Version constraint >=0.7.6 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)
+	- FullInlinerNonExpressionSplitArgumentEvaluationOrder
+	- MissingSideEffectsOnSelectorAccess
+	- AbiReencodingHeadOverflowWithStaticArrayCleanup
+	- DirtyBytesArrayToStorage
+	- DataLocationChangeInInternalOverride
+	- NestedCalldataArrayAbiReencodingSizeValidation
+	- SignedImmutables
+	- ABIDecodeTwoDimensionalArrayMemory
+	- KeccakCaching.
+It is used by:
+	- [>=0.7.6](contracts/test/TestERC20.sol#L2)
+
+contracts/test/TestERC20.sol#L2
+
+
+## low-level-calls
+Impact: Informational
+Confidence: High
+ - [ ] ID-70
+Low level call in [Address.sendValue(address,uint256)](contracts/dependencies/openzeppelin/contracts/utils/Address.sol#L60-L65):
+	- [(success,None) = recipient.call{value: amount}()](contracts/dependencies/openzeppelin/contracts/utils/Address.sol#L63)
+
+contracts/dependencies/openzeppelin/contracts/utils/Address.sol#L60-L65
+
+
+ - [ ] ID-71
+Low level call in [TransferHelper.safeTransfer(address,address,uint256)](contracts/libraries/TransferHelper.sol#L27-L33):
+	- [(success,data) = token.call(abi.encodeWithSignature(transfer(address,uint256),to,value))](contracts/libraries/TransferHelper.sol#L28)
+
+contracts/libraries/TransferHelper.sol#L27-L33
+
+
+ - [ ] ID-72
+Low level call in [AddressUpgradeable.functionStaticCall(address,bytes,string)](contracts/dependencies/openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol#L157-L166):
+	- [(success,returndata) = target.staticcall(data)](contracts/dependencies/openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol#L164)
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol#L157-L166
+
+
+ - [ ] ID-73
+Low level call in [AddressUpgradeable.functionCallWithValue(address,bytes,uint256,string)](contracts/dependencies/openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol#L128-L139):
+	- [(success,returndata) = target.call{value: value}(data)](contracts/dependencies/openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol#L137)
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol#L128-L139
+
+
+ - [ ] ID-74
+Low level call in [TransferHelper.balanceOf(address,address)](contracts/libraries/TransferHelper.sol#L36-L43):
+	- [(success,data) = token.call(abi.encodeWithSignature(balanceOf(address),account))](contracts/libraries/TransferHelper.sol#L37)
+
+contracts/libraries/TransferHelper.sol#L36-L43
+
+
+ - [ ] ID-75
+Low level call in [Address.functionStaticCall(address,bytes,string)](contracts/dependencies/openzeppelin/contracts/utils/Address.sol#L157-L166):
+	- [(success,returndata) = target.staticcall(data)](contracts/dependencies/openzeppelin/contracts/utils/Address.sol#L164)
+
+contracts/dependencies/openzeppelin/contracts/utils/Address.sol#L157-L166
+
+
+ - [ ] ID-76
+Low level call in [TimelockController._execute(address,uint256,bytes)](contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L339-L346):
+	- [(success,None) = target.call{value: value}(data)](contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L344)
+
+contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#L339-L346
+
+
+ - [ ] ID-77
+Low level call in [TransferHelper.safeTransferFrom(address,address,address,uint256)](contracts/libraries/TransferHelper.sol#L19-L25):
+	- [(success,data) = token.call(abi.encodeWithSignature(transferFrom(address,address,uint256),from,to,value))](contracts/libraries/TransferHelper.sol#L20)
+
+contracts/libraries/TransferHelper.sol#L19-L25
+
+
+ - [ ] ID-78
+Low level call in [Address.functionCallWithValue(address,bytes,uint256,string)](contracts/dependencies/openzeppelin/contracts/utils/Address.sol#L128-L139):
+	- [(success,returndata) = target.call{value: value}(data)](contracts/dependencies/openzeppelin/contracts/utils/Address.sol#L137)
+
+contracts/dependencies/openzeppelin/contracts/utils/Address.sol#L128-L139
+
+
+ - [ ] ID-79
+Low level call in [Address.functionDelegateCall(address,bytes,string)](contracts/dependencies/openzeppelin/contracts/utils/Address.sol#L184-L193):
+	- [(success,returndata) = target.delegatecall(data)](contracts/dependencies/openzeppelin/contracts/utils/Address.sol#L191)
+
+contracts/dependencies/openzeppelin/contracts/utils/Address.sol#L184-L193
+
+
+ - [ ] ID-80
+Low level call in [AddressUpgradeable.sendValue(address,uint256)](contracts/dependencies/openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol#L60-L65):
+	- [(success,None) = recipient.call{value: amount}()](contracts/dependencies/openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol#L63)
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol#L60-L65
+
+
+ - [ ] ID-81
+Low level call in [TransferHelper.safeApprove(address,address,uint256)](contracts/libraries/TransferHelper.sol#L11-L17):
+	- [(success,data) = token.call(abi.encodeWithSignature(approve(address,uint256),to,value))](contracts/libraries/TransferHelper.sol#L12)
+
+contracts/libraries/TransferHelper.sol#L11-L17
+
+
+## missing-inheritance
+Impact: Informational
+Confidence: High
+ - [ ] ID-82
+[ACLManager](contracts/configuration/ACLManager.sol#L7-L43) should inherit from [IACLManager](contracts/interfaces/IACLManager.sol#L4-L12)
+
+contracts/configuration/ACLManager.sol#L7-L43
+
+
+ - [ ] ID-83
+[MockWETH](contracts/test/MockWETH.sol#L7-L28) should inherit from [IWETH](contracts/interfaces/IWETH.sol#L7-L10)
+
+contracts/test/MockWETH.sol#L7-L28
+
+
+## naming-convention
+Impact: Informational
+Confidence: High
+ - [ ] ID-84
+Function [AccessControlUpgradeable.__AccessControl_init_unchained()](contracts/dependencies/openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol#L54-L55) is not in mixedCase
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol#L54-L55
+
+
+ - [ ] ID-85
+Parameter [EthgasPool.setDailyWithdrawalCap(address,uint256)._cap](contracts/EthgasPool.sol#L81) is not in mixedCase
+
+contracts/EthgasPool.sol#L81
+
+
+ - [ ] ID-86
+Parameter [ACLManager.checkAdminRole(address)._account](contracts/configuration/ACLManager.sol#L24) is not in mixedCase
+
+contracts/configuration/ACLManager.sol#L24
+
+
+ - [ ] ID-87
+Variable [ContextUpgradeable.__gap](contracts/dependencies/openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol#L36) is not in mixedCase
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol#L36
+
+
+ - [ ] ID-88
+Function [ReentrancyGuardUpgradeable.__ReentrancyGuard_init_unchained()](contracts/dependencies/openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol#L44-L46) is not in mixedCase
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol#L44-L46
+
+
+ - [ ] ID-89
+Variable [AccessControlUpgradeable.__gap](contracts/dependencies/openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol#L259) is not in mixedCase
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol#L259
+
+
+ - [ ] ID-90
+Parameter [CheckERC20Balance.wethBalanceOf(address)._account](contracts/test/CheckTokenBalance.sol#L17) is not in mixedCase
+
+contracts/test/CheckTokenBalance.sol#L17
+
+
+ - [ ] ID-91
+Function [OwnableUpgradeable.__Ownable_init()](contracts/dependencies/openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol#L29-L31) is not in mixedCase
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol#L29-L31
+
+
+ - [ ] ID-92
+Parameter [EthgasPool.setAclManager(IACLManager)._aclManager](contracts/EthgasPool.sol#L75) is not in mixedCase
+
+contracts/EthgasPool.sol#L75
+
+
+ - [ ] ID-93
+Parameter [CheckERC20Balance.daiBalanceOf(address)._account](contracts/test/CheckTokenBalance.sol#L33) is not in mixedCase
+
+contracts/test/CheckTokenBalance.sol#L33
+
+
+ - [ ] ID-94
+Variable [OwnableUpgradeable.__gap](contracts/dependencies/openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol#L94) is not in mixedCase
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol#L94
+
+
+ - [ ] ID-95
+Variable [PausableUpgradeable.__gap](contracts/dependencies/openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol#L116) is not in mixedCase
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol#L116
+
+
+ - [ ] ID-96
+Function [ReentrancyGuardUpgradeable.__ReentrancyGuard_init()](contracts/dependencies/openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol#L40-L42) is not in mixedCase
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol#L40-L42
+
+
+ - [ ] ID-97
+Function [ERC165Upgradeable.__ERC165_init_unchained()](contracts/dependencies/openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol#L27-L28) is not in mixedCase
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol#L27-L28
+
+
+ - [ ] ID-98
+Function [ContextUpgradeable.__Context_init_unchained()](contracts/dependencies/openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol#L21-L22) is not in mixedCase
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol#L21-L22
+
+
+ - [ ] ID-99
+Parameter [EthgasPoolBalance.setEthgasPool(address)._ethgasPool](contracts/test/EthgasPoolBalance.sol#L14) is not in mixedCase
+
+contracts/test/EthgasPoolBalance.sol#L14
+
+
+ - [ ] ID-100
+Parameter [ACLManager.checkTreasurerRole(address)._account](contracts/configuration/ACLManager.sol#L30) is not in mixedCase
+
+contracts/configuration/ACLManager.sol#L30
+
+
+ - [ ] ID-101
+Parameter [CheckERC20Balance.balanceOf(address,address)._account](contracts/test/CheckTokenBalance.sol#L13) is not in mixedCase
+
+contracts/test/CheckTokenBalance.sol#L13
+
+
+ - [ ] ID-102
+Variable [ReentrancyGuardUpgradeable.__gap](contracts/dependencies/openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol#L74) is not in mixedCase
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol#L74
+
+
+ - [ ] ID-103
+Function [AccessControlUpgradeable.__AccessControl_init()](contracts/dependencies/openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol#L51-L52) is not in mixedCase
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol#L51-L52
+
+
+ - [ ] ID-104
+Parameter [CheckERC20Balance.wbtcBalanceOf(address)._account](contracts/test/CheckTokenBalance.sol#L21) is not in mixedCase
+
+contracts/test/CheckTokenBalance.sol#L21
+
+
+ - [ ] ID-105
+Parameter [CheckERC20Balance.balanceOf(address,address)._token](contracts/test/CheckTokenBalance.sol#L13) is not in mixedCase
+
+contracts/test/CheckTokenBalance.sol#L13
+
+
+ - [ ] ID-106
+Variable [ERC165Upgradeable.__gap](contracts/dependencies/openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol#L41) is not in mixedCase
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol#L41
+
+
+ - [ ] ID-107
+Function [OwnableUpgradeable.__Ownable_init_unchained()](contracts/dependencies/openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol#L33-L35) is not in mixedCase
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol#L33-L35
+
+
+ - [ ] ID-108
+Parameter [ACLManager.checkTimelockRole(address)._account](contracts/configuration/ACLManager.sol#L34) is not in mixedCase
+
+contracts/configuration/ACLManager.sol#L34
+
+
+ - [ ] ID-109
+Function [PausableUpgradeable.__Pausable_init()](contracts/dependencies/openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol#L34-L36) is not in mixedCase
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol#L34-L36
+
+
+ - [ ] ID-110
+Parameter [ACLManager.checkPauserRole(address)._account](contracts/configuration/ACLManager.sol#L38) is not in mixedCase
+
+contracts/configuration/ACLManager.sol#L38
+
+
+ - [ ] ID-111
+Function [ContextUpgradeable.__Context_init()](contracts/dependencies/openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol#L18-L19) is not in mixedCase
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol#L18-L19
+
+
+ - [ ] ID-112
+Parameter [CheckERC20Balance.usdcBalanceOf(address)._account](contracts/test/CheckTokenBalance.sol#L29) is not in mixedCase
+
+contracts/test/CheckTokenBalance.sol#L29
+
+
+ - [ ] ID-113
+Function [ERC165Upgradeable.__ERC165_init()](contracts/dependencies/openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol#L24-L25) is not in mixedCase
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol#L24-L25
+
+
+ - [ ] ID-114
+Parameter [CheckERC20Balance.usdtBalanceOf(address)._account](contracts/test/CheckTokenBalance.sol#L25) is not in mixedCase
+
+contracts/test/CheckTokenBalance.sol#L25
+
+
+ - [ ] ID-115
+Parameter [EthgasPool.setDailyWithdrawalCap(address,uint256)._token](contracts/EthgasPool.sol#L81) is not in mixedCase
+
+contracts/EthgasPool.sol#L81
+
+
+ - [ ] ID-116
+Function [PausableUpgradeable.__Pausable_init_unchained()](contracts/dependencies/openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol#L38-L40) is not in mixedCase
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol#L38-L40
+
+
+## reentrancy-unlimited-gas
+Impact: Informational
+Confidence: Medium
+ - [ ] ID-117
+Reentrancy in [MockWETH.withdraw(uint256)](contracts/test/MockWETH.sol#L19-L27):
+	External calls:
+	- [address(msg.sender).transfer(wad)](contracts/test/MockWETH.sol#L25)
+	Event emitted after the call(s):
+	- [Withdrawal(msg.sender,wad)](contracts/test/MockWETH.sol#L26)
+
+contracts/test/MockWETH.sol#L19-L27
+
+
+## too-many-digits
+Impact: Informational
+Confidence: Medium
+ - [ ] ID-118
+[ACLManager.slitherConstructorConstantVariables()](contracts/configuration/ACLManager.sol#L7-L43) uses literals with too many digits:
+	- [PAUSER_ROLE = 0x0000000000000000000000000000000000000000000000000000000000000003](contracts/configuration/ACLManager.sol#L11)
+
+contracts/configuration/ACLManager.sol#L7-L43
+
+
+ - [ ] ID-119
+[ACLManager.slitherConstructorConstantVariables()](contracts/configuration/ACLManager.sol#L7-L43) uses literals with too many digits:
+	- [TIMELOCK_ROLE = 0x0000000000000000000000000000000000000000000000000000000000000002](contracts/configuration/ACLManager.sol#L10)
+
+contracts/configuration/ACLManager.sol#L7-L43
+
+
+ - [ ] ID-120
+[ACLManager.slitherConstructorConstantVariables()](contracts/configuration/ACLManager.sol#L7-L43) uses literals with too many digits:
+	- [TREASURER_ROLE = 0x0000000000000000000000000000000000000000000000000000000000000001](contracts/configuration/ACLManager.sol#L9)
+
+contracts/configuration/ACLManager.sol#L7-L43
+
+
+## unimplemented-functions
+Impact: Informational
+Confidence: High
+ - [ ] ID-121
+[ERC1155Receiver](contracts/dependencies/openzeppelin/contracts/token/ERC1155/utils/ERC1155Receiver.sol#L12-L19) does not implement functions:
+	- [IERC1155Receiver.onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)](contracts/dependencies/openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol#L51-L57)
+	- [IERC1155Receiver.onERC1155Received(address,address,uint256,uint256,bytes)](contracts/dependencies/openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol#L27-L33)
+
+contracts/dependencies/openzeppelin/contracts/token/ERC1155/utils/ERC1155Receiver.sol#L12-L19
+
+
+## unused-import
+Impact: Informational
+Confidence: High
+ - [ ] ID-122
+The following unused import(s) in contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol should be removed:
+	-import "../utils/Address.sol"; (contracts/dependencies/openzeppelin/contracts/governance/TimelockController.sol#9)
+
+## unused-state
+Impact: Informational
+Confidence: High
+ - [ ] ID-123
+[OwnableUpgradeable.__gap](contracts/dependencies/openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol#L94) is never used in [OwnableUpgradeable](contracts/dependencies/openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol#L21-L95)
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol#L94
+
+
+ - [ ] ID-124
+[AccessControlUpgradeable.__gap](contracts/dependencies/openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol#L259) is never used in [AccessControlUpgradeable](contracts/dependencies/openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol#L50-L260)
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol#L259
+
+
+ - [ ] ID-125
+[ReentrancyGuardUpgradeable.__gap](contracts/dependencies/openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol#L74) is never used in [ReentrancyGuardUpgradeable](contracts/dependencies/openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol#L23-L75)
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol#L74
+
+
+ - [ ] ID-126
+[PausableUpgradeable.__gap](contracts/dependencies/openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol#L116) is never used in [PausableUpgradeable](contracts/dependencies/openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol#L18-L117)
+
+contracts/dependencies/openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol#L116
+
+
+## constable-states
+Impact: Optimization
+Confidence: High
+ - [ ] ID-127
+[TestERC20.decimals](contracts/test/TestERC20.sol#L7) should be constant 
+
+contracts/test/TestERC20.sol#L7
+
+
+ - [ ] ID-128
+[TestERC20.totalSupply](contracts/test/TestERC20.sol#L6) should be constant 
+
+contracts/test/TestERC20.sol#L6
+
+

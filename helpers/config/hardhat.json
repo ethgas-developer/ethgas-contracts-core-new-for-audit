@@ -1,0 +1,122 @@
+{
+    "EthgasStakingSupportedTokens": [
+        "WETH", "WSTETH", "RETH", "STETH", "USDT", "USDC", "WBTC", "WEETH", "WEETHS", "PUFETH"
+    ],
+    "EthgasPoolSupportedTokens": [
+        "WETH", "WSTETH", "RETH", "STETH", "WBTC", "USDT"
+    ],
+    "EthgasRewardSupportedTokens": [
+        "WETH"
+    ],
+    "EthgasRebateSupportedTokens": [
+        "WETH"
+    ],
+    "EthgasToken": {
+        "name": "ETHGas Gwei Token",
+        "symbol": "GWEI",
+        "totalSupply": "1000000000"
+    },
+    "TimelockControllerMinDelayInSecond": 3600,
+    "Tokens": {
+        "WETH": {
+            "daily_withdrawal_cap": 50,
+            "daily_payout_cap": 60,
+            "test_fund_transfer_amount": 1000,
+            "test_token": true,
+            "test_token_name": "[Test] Wrapped ETH",
+            "test_token_symbol": "WETH",
+            "test_token_decimals": 18,
+            "test_token_amt_from_req": 1
+        },
+        "WSTETH": {
+            "daily_withdrawal_cap": 250,
+            "daily_payout_cap": 0,
+            "test_fund_transfer_amount": 1000,
+            "test_token": true,
+            "test_token_name": "[Test] Wrapped Staked ETH",
+            "test_token_symbol": "WSTETH",
+            "test_token_decimals": 18,
+            "test_token_amt_from_req": "1"
+        },
+        "RETH": {
+            "daily_withdrawal_cap": 50,
+            "daily_payout_cap": 0,
+            "test_fund_transfer_amount": 1000,
+            "test_token": true,
+            "test_token_name": "[Test] Rocket Pool ETH",
+            "test_token_symbol": "WSTETH",
+            "test_token_decimals": 18,
+            "test_token_amt_from_req": "1"
+        },
+        "STETH": {
+            "daily_withdrawal_cap": 50,
+            "daily_payout_cap": 0,
+            "test_fund_transfer_amount": 1000,
+            "test_token": true,
+            "test_token_name": "[Test] Staked ETH",
+            "test_token_symbol": "STETH",
+            "test_token_decimals": 18,
+            "test_token_amt_from_req": "1"
+        },
+        "USDT": {
+            "daily_withdrawal_cap": 250,
+            "daily_payout_cap": 0,
+            "test_fund_transfer_amount": 1000,
+            "test_token": true,
+            "test_token_name": "[Test] USDT",
+            "test_token_symbol": "USDT",
+            "test_token_decimals": 6,
+            "test_token_amt_from_req": "1"
+        },
+        "USDC": {
+            "daily_withdrawal_cap": 250,
+            "daily_payout_cap": 0,
+            "test_fund_transfer_amount": 1000,
+            "test_token": true,
+            "test_token_name": "[Test] Circle USD",
+            "test_token_symbol": "USDC",
+            "test_token_decimals": 6,
+            "test_token_amt_from_req": "1"
+        },
+        "WBTC": {
+            "daily_withdrawal_cap": 1,
+            "daily_payout_cap": 0,
+            "test_fund_transfer_amount": 5,
+            "test_token": true,
+            "test_token_name": "[Test] Wrapped Bitcoin",
+            "test_token_symbol": "WBTC",
+            "test_token_decimals": 8,
+            "test_token_amt_from_req": "1"
+        },
+        "WEETH": {
+            "daily_withdrawal_cap": 250,
+            "daily_payout_cap": 0,
+            "test_fund_transfer_amount": 1000,
+            "test_token": true,
+            "test_token_name": "[Test] Wrapped EtherFI ETH",
+            "test_token_symbol": "WEETH",
+            "test_token_decimals": 18,
+            "test_token_amt_from_req": "1"
+        },
+        "WEETHS": {
+            "daily_withdrawal_cap": 250,
+            "daily_payout_cap": 0,
+            "test_fund_transfer_amount": 1000,
+            "test_token": true,
+            "test_token_name": "[Test] Super Symbiotic LRT ETH",
+            "test_token_symbol": "WEETHS",
+            "test_token_decimals": 18,
+            "test_token_amt_from_req": "1"
+        },
+        "PUFETH": {
+            "daily_withdrawal_cap": 250,
+            "daily_payout_cap": 0,
+            "test_fund_transfer_amount": 1000,
+            "test_token": true,
+            "test_token_name": "[Test] Puffer ETH",
+            "test_token_symbol": "PUFETH",
+            "test_token_decimals": 18,
+            "test_token_amt_from_req": "1"
+        }
+    }
+}

@@ -12,6 +12,7 @@ interface IVotingEscrow {
     function increase_amount(uint256 _value) external;
     function create_lock_for(address _addr, uint256 _value, uint256 _unlock_time) external;
     function increase_amount_for(address _addr, uint256 _value) external;
+    function increase_unlock_time(uint256 _unlock_time) external;
     function withdraw() external;
     function whitelist_contracts(address[30] memory contracts, bool[30] memory is_whitelists) external;
 

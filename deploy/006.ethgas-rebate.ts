@@ -16,20 +16,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     if (hre.network.tags.testnet === true) {
         if (hre.network.tags.sepolia === true) {
           addressObj = require(`../helpers/address/sepolia.json`); 
-        }
-        else if (hre.network.tags.hoodi === true) {
+        } else if (hre.network.tags.hoodi === true) {
           addressObj = require(`../helpers/address/hoodi.json`); 
-        }
-        else if (hre.network.tags.dev_chain === true) 
-        {
-          addressObj = require(`../helpers/address/dev_chain.json`); 
-        }
-        else if (hre.network.tags.dev_pectra === true) 
-        {
-            addressObj = require(`../helpers/address/dev_pectra.json`); 
-        }
-        else
-        {
+        } else {
           console.log("Error: Unknown testnet")
           throw new Error("Error: Unknown testnet")
         }

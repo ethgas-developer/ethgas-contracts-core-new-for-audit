@@ -54,11 +54,13 @@ contract EthgasTokenLock is IEthgasTokenLock {
     
     // Snapshot Voting Delegation
     IDelegateRegistry public immutable delegateRegistry;
+    bytes32[] public snapshotDelegateIds;
 
     // -- Events --
 
     event TokensReleased(address indexed beneficiary, uint256 amount);
     event TokensWithdrawn(address indexed beneficiary, uint256 amount);
+    event RevokedTokensWithdrawn(uint256 amount);
     event TokensRevoked(address indexed beneficiary, uint256 amount);
     event TokensStaked(address indexed beneficiary, uint256 amount);
     event TokensUnstaked();
@@ -131,6 +133,8 @@ contract EthgasTokenLock is IEthgasTokenLock {
         require(_unlockInfo.unlockStartTime != 0, "Start time must be set");
         require(_unlockInfo.unlockStartTime < _unlockInfo.unlockEndTime, "Start time >= end time");
         require(_unlockInfo.unlockPeriods >= MIN_PERIOD, "Periods cannot be below minimum");
+        require(_unlockInfo.initialUnlockAmount <= _managedAmount, "initialUnlockAmount cannot be larger than managedAmount");
+        require(_vestingInfo.vestingCliffAmount <= _managedAmount, "vestingCliffAmount cannot be larger than managedAmount");
 
         aclManager = _aclManager;
         beneficiary = _beneficiary;
@@ -159,7 +163,6 @@ contract EthgasTokenLock is IEthgasTokenLock {
             vestingCliffAmount = _vestingInfo.vestingCliffAmount;
             revocable = _revocable;
         }
-        token.approve(address(veToken), type(uint256).max);
     }
 
     function setAclManager(IACLManager _aclManager) external onlyTimelockRole {
@@ -230,7 +233,7 @@ contract EthgasTokenLock is IEthgasTokenLock {
 
     /**
      * @notice Gets time elapsed since the start of the contract
-     * @dev Returns zero if called before conctract starTime
+     * @dev Returns zero if called before contract startTime
      * @return Seconds elapsed from contract vestingCliffTime
      */
     function sinceVestingCliffTime() public view override returns (uint256) {
@@ -246,6 +249,9 @@ contract EthgasTokenLock is IEthgasTokenLock {
      * @return Amount of tokens available after each period
      */
     function vestingAmountPerPeriod() public view override returns (uint256) {
+        if (revocable == false) {
+            return 0;
+        }
         return (managedAmount - vestingCliffAmount) / vestingPeriods;
     }
 
@@ -254,6 +260,9 @@ contract EthgasTokenLock is IEthgasTokenLock {
      * @return Duration of each period in seconds
      */
     function vestingPeriodDuration() public view override returns (uint256) {
+        if (revocable == false) {
+            return 0;
+        }
         return vestingDuration() / vestingPeriods;
     }
 
@@ -262,6 +271,9 @@ contract EthgasTokenLock is IEthgasTokenLock {
      * @return A number that represents the current period
      */
     function currentVestingPeriod() public view override returns (uint256) {
+        if (revocable == false) {
+            return 0;
+        }
         return sinceVestingCliffTime() / vestingPeriodDuration() + MIN_PERIOD;
     }
 
@@ -270,6 +282,9 @@ contract EthgasTokenLock is IEthgasTokenLock {
      * @return A number of vestingPeriods that passed since the schedule started
      */
     function passedVestingPeriods() public view override returns (uint256) {
+        if (revocable == false) {
+            return 0;
+        }
         return currentVestingPeriod() - MIN_PERIOD;
     }
 
@@ -385,14 +400,15 @@ contract EthgasTokenLock is IEthgasTokenLock {
     /**
      * @notice Gets surplus amount in the contract based on outstanding amount to release
      * @dev All funds over outstanding amount is considered surplus that can be withdrawn by beneficiary.
-     * Note this might not be the correct value for wallets transferred to L2 (i.e. an L2EthgasTokenLockWallet), as the released amount will be
-     * skewed, so the beneficiary might have to bridge back to L1 to release the surplus.
+     * Note surplus fund cannot be withdrawn by any party after the contract is revoked
      * @return Amount of tokens considered as surplus
      */
     function surplusAmount() public view override returns (uint256) {
         uint256 balance = currentBalance();
         uint256 outstandingAmount = totalOutstandingAmount();
-        if (balance > outstandingAmount) {
+        if (isRevoked == true) {
+            return 0;
+        } else if (balance > outstandingAmount) {
             return balance - outstandingAmount;
         }
         return 0;
@@ -413,6 +429,7 @@ contract EthgasTokenLock is IEthgasTokenLock {
 
         if (_isStake) {
             IVotingEscrow.LockedBalance memory l = veToken.locked(msg.sender);
+            token.approve(address(veToken), amountToRelease);
             if (l.amount > 0) {
                 veToken.increase_amount_for(msg.sender, amountToRelease);
             } else {
@@ -431,13 +448,19 @@ contract EthgasTokenLock is IEthgasTokenLock {
      */
     function stake(uint256 _amount, uint256 _initUnlockTime) external onlyBeneficiary {
         require(_amount <= currentBalance(), "No available balance");
+        require(isAccepted == true, "Cannot stake without accepting contract");
         IVotingEscrow.LockedBalance memory l = veToken.locked(address(this));
+        token.approve(address(veToken), _amount);
         if (l.amount > 0) {
             veToken.increase_amount(_amount);
         } else {
             veToken.create_lock(_amount, _initUnlockTime);
         }
         emit TokensStaked(address(this), _amount);
+    }
+
+    function getStakingInfo() external view returns (IVotingEscrow.LockedBalance memory) {
+        return veToken.locked(address(this));
     }
 
     function claimStakingReward() external {
@@ -474,6 +497,7 @@ contract EthgasTokenLock is IEthgasTokenLock {
     function setSnapshotDelegate(bytes32 _id, address _delegate) external onlyBeneficiary {
         require(isRevoked == false, "revoked contract cannot perform delegation");
         delegateRegistry.setDelegate(_id, _delegate);
+        snapshotDelegateIds.push(_id);
         emit SetDelegate(_id, _delegate);
     }
 
@@ -505,9 +529,9 @@ contract EthgasTokenLock is IEthgasTokenLock {
     /**
      * @notice Revokes a vesting schedule and return the unvested tokens to the admin
      * @dev Vesting schedule is always calculated based on managed tokens
-     * @param _ids has no effect if there hasn't benn any snapshot delegation
+     * @param _isClearDelegate it should always be true unless there is an issue for calling _clearSnapshotDelegate(_id)
      */
-    function revoke(bytes32[] calldata _ids) external override onlyAdminRole {
+    function revoke(bool _isClearDelegate) external override onlyAdminRole {
         require(revocable, "Contract is non-revocable");
         require(isRevoked == false, "Already revoked");
 
@@ -519,8 +543,10 @@ contract EthgasTokenLock is IEthgasTokenLock {
 
         emit TokensRevoked(beneficiary, unvestedAmount);
 
-        for (uint256 i; i < _ids.length; i++) {
-            _clearSnapshotDelegate(_ids[i]);
+        if (_isClearDelegate) {
+            for (uint256 i; i < snapshotDelegateIds.length; i++) {
+                _clearSnapshotDelegate(snapshotDelegateIds[i]);
+            }
         }
     }
 
@@ -528,5 +554,6 @@ contract EthgasTokenLock is IEthgasTokenLock {
 
         token.safeTransfer(msg.sender, revokedAmount);
 
+        emit RevokedTokensWithdrawn(revokedAmount);
     }
 }

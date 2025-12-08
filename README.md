@@ -31,3 +31,36 @@ npx hardhat test test/<EthgasRebateToVeStaking or EthgasTokenLockToVeStaking or 
 # Debug
 - re-run the test if it throws error during the first time
 - for vesting related tests, move schedule to the future under `test/lock_config.ts`
+
+# Mainnet TGE deployment procedures
+- create `helpers/token-config/tokenLock-mainnet_prod.csv` and ensure it is properly configured
+- ensure `helpers/config/mainnet_prod.json` is properly configured
+- run
+```
+npx hardhat deploy --tags EthgasToken --network mainnet_prod
+```
+- switch to `ethgas-contracts-dao` repo
+    - ensure `scripts/deployment/deployment_config.py` is properly configured, especially update the `token` address from the newly deployed contract above
+    - run
+    ```
+    brownie run deployment/deploy_dao live_part_one --network mainnet
+    ```
+- switch back to this repo
+- ensure `helpers/address/mainnet.json` is properly configured, especially update addresses of `GWEI`, `VEGWEI`, `feeDistributor` from the newly deployed contracts above
+- ensure addresses under `deployments/mainnet_prod` are properly configured especially `EthgasToken` & `ACLManager`
+- run below to deploy the rest
+```
+npx hardhat deploy --tags EthgasTokenLock --network mainnet_prod
+npx hardhat deploy --tags EthgasRebate --network mainnet_prod
+npx hardhat deploy --tags BatchTransferFund --network mainnet_prod
+```
+- run below scripts to verify contracts source code on Etherscan
+```
+npx hardhat run scripts/verifyTokenLock.ts --network mainnet_prod
+npx hardhat run scripts/verifyTge.ts --network mainnet_prod
+```
+- manually copy and paste vyper code on Etherscan
+- run below to list out hex data to create transactions for MPCVault admin
+```
+npx hardhat run scripts/tge-operations.ts --network mainnet_prod
+```

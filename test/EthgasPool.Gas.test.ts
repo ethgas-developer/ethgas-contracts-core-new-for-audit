@@ -5,10 +5,9 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { EthgasPool} from '../typechain';
 import hre from "hardhat";
 const addressObj = require(`../helpers/address/mainnet.json`);
-const STETH_ADDRESS = addressObj["STETH"]["token_address"];
+const USDT_ADDRESS = addressObj["USDT"]["token_address"];
 const WSTETH_ADDRESS = addressObj["WSTETH"]["token_address"];
 const WETH_ADDRESS = addressObj["WETH"]["token_address"];
-const RETH_ADDRESS = addressObj["RETH"]["token_address"];
 const RANDOM_ADDRESS_1 = addressObj["RANDOM"][0];
 const RANDOM_ADDRESS_2 = addressObj["RANDOM"][1];
 const RANDOM_ADDRESS_3 = addressObj["RANDOM"][2];
@@ -129,7 +128,7 @@ describe("Gas Test", () => {
 
         it("serverTransferFund for 1 user with 2 tokens", async() => {
             let receipt: ContractReceipt = await( await pool.connect(treasurerSigner).serverTransferFund(
-                [RANDOM_ADDRESS_1], [[ {token: WETH_ADDRESS, amount: parseTokenAmount("1", "ETH")}, {token: STETH_ADDRESS, amount: parseTokenAmount("1", "ETH")} ]]
+                [RANDOM_ADDRESS_1], [[ {token: WETH_ADDRESS, amount: parseTokenAmount("1", "ETH")}, {token: WSTETH_ADDRESS, amount: parseTokenAmount("1", "ETH")} ]]
             )).wait()
 
             const gasFeeUsed = receipt.gasUsed.mul(ethGasPrice)
@@ -138,7 +137,7 @@ describe("Gas Test", () => {
 
         it("serverTransferFund for 1 user with 3 tokens", async() => {
             let receipt: ContractReceipt = await( await pool.connect(treasurerSigner).serverTransferFund(
-                [RANDOM_ADDRESS_1], [[ {token: WETH_ADDRESS, amount: parseTokenAmount("1", "ETH")}, {token: STETH_ADDRESS, amount: parseTokenAmount("1", "ETH")}, {token: RETH_ADDRESS, amount: parseTokenAmount("0.12", "ETH")} ]]
+                [RANDOM_ADDRESS_1], [[ {token: WETH_ADDRESS, amount: parseTokenAmount("1", "ETH")}, {token: WSTETH_ADDRESS, amount: parseTokenAmount("1", "ETH")}, {token: USDT_ADDRESS, amount: parseTokenAmount("0.12", "USDT")} ]]
             )).wait()
 
             const gasFeeUsed = receipt.gasUsed.mul(ethGasPrice)
@@ -147,7 +146,7 @@ describe("Gas Test", () => {
 
         it("serverTransferFund for 2 user with 1 token each", async() => {
             let receipt: ContractReceipt = await( await pool.connect(treasurerSigner).serverTransferFund(
-                [RANDOM_ADDRESS_1, RANDOM_ADDRESS_2], [[ {token: WETH_ADDRESS, amount: parseTokenAmount("1", "ETH")} ], [ {token: STETH_ADDRESS, amount: parseTokenAmount("1", "ETH")} ]]
+                [RANDOM_ADDRESS_1, RANDOM_ADDRESS_2], [[ {token: WETH_ADDRESS, amount: parseTokenAmount("1", "ETH")} ], [ {token: WSTETH_ADDRESS, amount: parseTokenAmount("1", "ETH")} ]]
             )).wait()
 
             const gasFeeUsed = receipt.gasUsed.mul(ethGasPrice)
@@ -157,7 +156,7 @@ describe("Gas Test", () => {
         it("serverTransferFund for 3 user with 1 token each", async() => {
             let receipt: ContractReceipt = await( await pool.connect(treasurerSigner).serverTransferFund(
                 [RANDOM_ADDRESS_1, RANDOM_ADDRESS_2, RANDOM_ADDRESS_3], 
-                [[ {token: WETH_ADDRESS, amount: parseTokenAmount("1", "ETH")} ], [ {token: STETH_ADDRESS, amount: parseTokenAmount("1", "ETH")} ], [ {token: WSTETH_ADDRESS, amount: parseTokenAmount("1", "ETH")} ]]
+                [[ {token: WETH_ADDRESS, amount: parseTokenAmount("1", "ETH")} ], [ {token: WSTETH_ADDRESS, amount: parseTokenAmount("1", "ETH")} ], [ {token: WSTETH_ADDRESS, amount: parseTokenAmount("1", "ETH")} ]]
             )).wait()
 
             const gasFeeUsed = receipt.gasUsed.mul(ethGasPrice)
@@ -182,7 +181,7 @@ describe("Gas Test", () => {
             let amounts = Array(100).fill([{ token: WETH_ADDRESS, amount: parseTokenAmount("0.01", "ETH") }]);
             let receipt: ContractReceipt = await( await pool.connect(treasurerSigner).serverTransferFund(addressArr, amounts, { gasLimit: 5000000 })).wait();
             let gasFeeUsed = receipt.gasUsed.mul(ethGasPrice);
-            console.log(`\ngas unit: ${receipt.gasUsed},  gas fee in ETH: ${formatTokenAmount(gasFeeUsed, "ETH")},  gas fee in USD: ${formatTokenAmount(gasFeeUsed.mul(ethMarketPriceInUsd), "ETH")}`);
+            console.log(`\ngas unit: ${receipt.gasUsed},  gas fee in ETH: ${formatTokenAmount(gasFeeUsed, "ETH")},  gas fee in USD: ${formatTokenAmount(gasFeeUsed.mul(ethMarketPriceInUsd), "ETH")} (sending WETH)`);
         
             amounts = Array(100).fill([{ token: NATIVE_ETH_ADDRESS, amount: parseTokenAmount("0.01", "ETH") }]);
             receipt = await( await pool.connect(treasurerSigner).serverTransferFund(addressArr, amounts, { gasLimit: 5000000 })).wait();

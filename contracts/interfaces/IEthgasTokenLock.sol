@@ -54,5 +54,5 @@ interface IEthgasTokenLock {
 
     function withdrawSurplus(uint256 _amount) external;
 
-    function revoke(bytes32[] calldata _ids) external;
+    function revoke(bool _isClearDelegate) external;
 }

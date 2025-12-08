@@ -224,12 +224,23 @@ describe('EthgasTokenLock', () => {
             expect(await tokenLock.vestingCliffTime()).eq(initArgs.vestingCliffTime)
             expect(await tokenLock.vestingEndTime()).eq(initArgs.vestingEndTime)
             expect(await tokenLock.vestingCliffAmount()).eq(initArgs.vestingCliffAmount)
+
+            expect(await tokenLock.vestingAmountPerPeriod()).to.gt(0)
+            expect(await tokenLock.vestingPeriodDuration()).to.gt(0)
+            expect(await tokenLock.currentVestingPeriod()).to.gt(0)
+
           } else {
             expect(await tokenLock.vestingPeriods()).eq(0)
             expect(await tokenLock.vestingCliffTime()).eq(0)
             expect(await tokenLock.vestingEndTime()).eq(0)
             expect(await tokenLock.vestingCliffAmount()).eq(0)
+
+            expect(await tokenLock.vestingAmountPerPeriod()).eq(0)
+            expect(await tokenLock.vestingPeriodDuration()).eq(0)
+            expect(await tokenLock.currentVestingPeriod()).eq(0)
+
           }
+          expect(await tokenLock.passedVestingPeriods()).eq(0)
         })
       })
 
@@ -699,7 +710,7 @@ describe('EthgasTokenLock', () => {
               await advanceVestingPeriods(tokenLock, 2) // fwd two vestingPeriods
 
               // Admin revokes the contract
-              await tokenLock.connect(contractAdminSigner).revoke([ethers.constants.HashZero])
+              await tokenLock.connect(contractAdminSigner).revoke(true)
               const vestedAmount = await tokenLock.vestedAmount()
 
               // Some more vestingPeriods passed
@@ -787,7 +798,7 @@ describe('EthgasTokenLock', () => {
             await expect(tx2).emit(tokenLock, 'TokensWithdrawn').withArgs(beneficiary1Signer.address, surplusAmount.sub(1))
           })
 
-          it('should withdraw surplus balance even after the contract was released->revoked', async function () {
+          it('cannot withdraw surplus balance after the contract was released->revoked', async function () {
             if (
               initArgs.revocable === true && 
               initArgs.vestingCliffTime === initArgs.unlockStartTime &&
@@ -805,22 +816,22 @@ describe('EthgasTokenLock', () => {
 
               // Release / Revoke
               await tokenLock.connect(beneficiary1Signer).release(false, 0)
-              await tokenLock.connect(contractAdminSigner).revoke([ethers.constants.HashZero])
+              await tokenLock.connect(contractAdminSigner).revoke(true)
               await tokenLock.connect(contractAdminSigner).withdrawRevoked();
 
               // Should withdraw
               const tx2 = tokenLock.connect(beneficiary1Signer).withdrawSurplus(surplusAmount)
-              await expect(tx2).emit(tokenLock, 'TokensWithdrawn').withArgs(beneficiary1Signer.address, surplusAmount)
+              await expect(tx2).revertedWith("Amount requested > surplus available")
 
               // Contract must have no balance after all actions
               const balance = await ethgasToken.balanceOf(tokenLock.address)
-              expect(balance).eq(0)
+              expect(balance).eq(surplusAmount)
             } else {
               this.skip();
             }
           })
 
-          it('should withdraw surplus balance even after the contract was revoked->released', async function () {
+          it('cannot withdraw surplus balance after the contract was revoked->released', async function () {
             if (
               initArgs.revocable === true && 
               initArgs.vestingCliffTime === initArgs.unlockStartTime &&
@@ -837,17 +848,17 @@ describe('EthgasTokenLock', () => {
               await advanceVestingPeriods(tokenLock, 2) // fwd two vestingPeriods
 
               // Release / Revoke
-              await tokenLock.connect(contractAdminSigner).revoke([ethers.constants.HashZero])
+              await tokenLock.connect(contractAdminSigner).revoke(true)
               await tokenLock.connect(contractAdminSigner).withdrawRevoked();
               await tokenLock.connect(beneficiary1Signer).release(false, 0)
 
               // Should withdraw
               const tx2 = tokenLock.connect(beneficiary1Signer).withdrawSurplus(surplusAmount)
-              await expect(tx2).emit(tokenLock, 'TokensWithdrawn').withArgs(beneficiary1Signer.address, surplusAmount)
+              await expect(tx2).revertedWith("Amount requested > surplus available")
 
               // Contract must have no balance after all actions
               const balance = await ethgasToken.balanceOf(tokenLock.address)
-              expect(balance).eq(0)
+              expect(balance).eq(surplusAmount)
             } else {
               this.skip();
             }
@@ -890,9 +901,10 @@ describe('EthgasTokenLock', () => {
               const managedAmount = await tokenLock.managedAmount()
               const unvestedAmount = managedAmount.sub(vestedAmount)
               expect(unvestedAmount).gt(0)
-              let tx = await tokenLock.connect(contractAdminSigner).revoke([ethers.constants.HashZero])
+              let tx = await tokenLock.connect(contractAdminSigner).revoke(false)
               await expect(tx).emit(tokenLock, 'TokensRevoked').withArgs(beneficiaryAddress, unvestedAmount)
-              tx = await tokenLock.connect(contractAdminSigner).withdrawRevoked();
+              let tx2 = tokenLock.connect(contractAdminSigner).withdrawRevoked();
+              await expect(tx2).emit(tokenLock, "RevokedTokensWithdrawn");
               // After state
               const after = await getState(tokenLock)
               expect(after.adminBalance).eq(before.adminBalance.add(unvestedAmount))
@@ -903,8 +915,8 @@ describe('EthgasTokenLock', () => {
 
           it('reject revoke multiple times', async function () {
             if (initArgs.revocable === true) {
-              await tokenLock.connect(contractAdminSigner).revoke([ethers.constants.HashZero])
-              const tx = tokenLock.connect(contractAdminSigner).revoke([ethers.constants.HashZero])
+              await tokenLock.connect(contractAdminSigner).revoke(true)
+              const tx = tokenLock.connect(contractAdminSigner).revoke(true)
               await expect(tx).revertedWith('Already revoked')
             } else {
               this.skip()
@@ -912,13 +924,13 @@ describe('EthgasTokenLock', () => {
           })
 
           it('reject revoke if not authorized', async function () {
-            const tx = tokenLock.connect(beneficiary1Signer).revoke([ethers.constants.HashZero])
+            const tx = tokenLock.connect(beneficiary1Signer).revoke(true)
             await expect(tx).revertedWith("AccessControl: account " +  beneficiary1Signer.address.toLowerCase() + " is missing role " + DEFAULT_ADMIN_ROLE)
           })
 
           it('reject revoke if not revocable', async function () {
             if (initArgs.revocable === false) {
-              const tx = tokenLock.connect(contractAdminSigner).revoke([ethers.constants.HashZero])
+              const tx = tokenLock.connect(contractAdminSigner).revoke(true)
               await expect(tx).revertedWith('Contract is non-revocable')
             } else {
               this.skip()
@@ -931,7 +943,7 @@ describe('EthgasTokenLock', () => {
               await advanceToVestingEnd(tokenLock)
 
               // Try to revoke after all tokens have been vested
-              const tx = tokenLock.connect(contractAdminSigner).revoke([ethers.constants.HashZero])
+              const tx = tokenLock.connect(contractAdminSigner).revoke(true)
               await expect(tx).revertedWith('No available unvested amount')
             } else {
               this.skip()
@@ -941,7 +953,7 @@ describe('EthgasTokenLock', () => {
           it('cannot delegate after revoke', async function () {
             if (initArgs.revocable === true) {
               const id = ethers.utils.formatBytes32String("preconf-dao.eth")
-              await tokenLock.connect(contractAdminSigner).revoke([id])
+              await tokenLock.connect(contractAdminSigner).revoke(false)
               const tx = tokenLock.connect(beneficiary1Signer).setSnapshotDelegate(
                 id,
                 beneficiary2Signer.address
@@ -1061,7 +1073,7 @@ describe('EthgasTokenLock', () => {
                 expect(newState.releasedAmount).eq(0);
               }
 
-              let tx = tokenLock.connect(contractAdminSigner).revoke([ethers.constants.HashZero]);
+              let tx = tokenLock.connect(contractAdminSigner).revoke(true);
               await expect(tx).revertedWith("No available unvested amount")
             }
 
@@ -1137,7 +1149,7 @@ describe('EthgasTokenLock', () => {
             expect(newState.releasableAmount).eq(0);
             expect(newState.releasedAmount).eq(0);
 
-            await tokenLock.connect(contractAdminSigner).revoke([ethers.constants.HashZero]);
+            await tokenLock.connect(contractAdminSigner).revoke(true);
             await tokenLock.connect(contractAdminSigner).withdrawRevoked();
             newState = await getState(tokenLock);
             expect(newState.beneficiaryBalance).eq(0);
@@ -1148,7 +1160,7 @@ describe('EthgasTokenLock', () => {
             expect(newState.releasableAmount).eq(0);
             expect(newState.releasedAmount).eq(0);
 
-            let tx = tokenLock.connect(contractAdminSigner).revoke([ethers.constants.HashZero]);
+            let tx = tokenLock.connect(contractAdminSigner).revoke(true);
             await expect(tx).revertedWith("Already revoked")
             await advanceVestingPeriods(tokenLock, 4);
             newState = await getState(tokenLock);
@@ -1316,7 +1328,7 @@ describe('EthgasTokenLock', () => {
               } else if (i >= revokedPeriods) {
                 if (i === revokedPeriods) {
                   await tokenLock.connect(beneficiary1Signer).release(false, 0);
-                  await tokenLock.connect(contractAdminSigner).revoke([ethers.constants.HashZero]);
+                  await tokenLock.connect(contractAdminSigner).revoke(true);
                   await tokenLock.connect(contractAdminSigner).withdrawRevoked();
                 }
                 newState = await getState(tokenLock);

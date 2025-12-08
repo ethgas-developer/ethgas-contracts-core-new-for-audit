@@ -52,7 +52,6 @@ contract EthgasRebate is Pausable, IEthgasRebate, ReentrancyGuard {
             dailyWithdrawalCap[_token[i]] = _cap[i];
             emit DailyWithdrawalCapChanged(_token[i], _cap[i]);
         }
-        ethgasToken.approve(address(veToken), type(uint256).max);
     }
 
     modifier onlyPauserRole() {
@@ -122,7 +121,7 @@ contract EthgasRebate is Pausable, IEthgasRebate, ReentrancyGuard {
         for (uint i; i < _depositorAddr.length; i++) {
             InputValidator.validateAddr(_depositorAddr[i]);
             depositWhitelist[_depositorAddr[i]] = _status[i];
-            emit DepositWhitelistStatusChagned(_depositorAddr[i], _status[i]);
+            emit DepositWhitelistStatusChanged(_depositorAddr[i], _status[i]);
         }
 	}
 
@@ -216,10 +215,14 @@ contract EthgasRebate is Pausable, IEthgasRebate, ReentrancyGuard {
                 }
                 if (_isStake && token == address(ethgasToken)) {
                     IVotingEscrow.LockedBalance memory l = veToken.locked(msg.sender);
+                    ethgasToken.approve(address(veToken), totalClaimAmount);
                     if (l.amount > 0) {
                         veToken.increase_amount_for(msg.sender, totalClaimAmount);
                         emit RewardStaked(msg.sender, totalClaimAmount, 0);
                     } else {
+                        if (_initUnlockTime <= block.timestamp) { 
+                            revert InvalidUnlockTime();
+                        }
                         if (_initUnlockTime - block.timestamp < uint256(merkleRootInfo[_category].minUnlockDuration)) {
                             revert InvalidUnlockTime();
                         }
@@ -242,7 +245,7 @@ contract EthgasRebate is Pausable, IEthgasRebate, ReentrancyGuard {
         emit Withdrawal(_tokenAddr, _receiver, _amount);
     }
 
-    function deposit() payable external onlyDepositor whenNotPaused {
+    function deposit() payable external onlyDepositor nonReentrant whenNotPaused {
         if(msg.value > 0) {
             IWETH(weth).deposit{value: msg.value}(); 
             emit Deposit(address(weth), msg.sender, msg.value);
@@ -251,7 +254,7 @@ contract EthgasRebate is Pausable, IEthgasRebate, ReentrancyGuard {
         }
     }
 
-    function deposit(address[] calldata _tokenAddr, uint256[] calldata _amount) external onlyDepositor whenNotPaused {
+    function deposit(address[] calldata _tokenAddr, uint256[] calldata _amount) external onlyDepositor nonReentrant whenNotPaused {
         if (_tokenAddr.length != _amount.length) {
             revert InvalidArrayLength();
         }

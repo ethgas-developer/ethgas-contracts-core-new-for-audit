@@ -5,6 +5,7 @@ import csv from "csv-parser";
 import { parse } from "json2csv";
 import { Contract, Wallet } from "ethers";
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
+import { formatTokenAmount, parseTokenAmount } from "../../helpers/utils"
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const { deploy, getOrNull } = hre.deployments;
@@ -12,12 +13,16 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     const { deployer } = await hre.getNamedAccounts();
     const ethgasPoolDeploy = await deployments.get("EthgasPool");
+    const ethgasRebateDeploy = await deployments.get("EthgasRebate");
     ////////////////////////////////////
     ///////// to be confirmed //////////
     ////////////////////////////////////
     const treasuryAddress = ethgasPoolDeploy.address;
     ////////////////////////////////////
     ////////////////////////////////////
+
+    const configObj: Record<string, any> = require(`../../helpers/config/` + hre.network.name + `.json`);
+    const tokensConfigObj: Record<string, Record<string, any>> = configObj["Tokens"];
 
     let deployerSigner: Wallet | SignerWithAddress = await ethers.getSigner(deployer);
     if (hre.network.tags.mainnet === true) {
@@ -85,9 +90,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
                     // Calculate total amount needed
                     const totalTransferOutAmount = amounts.reduce((sum, amount) => sum.add(amount), ethers.BigNumber.from(0));
                     const totalSupply = await ethgasToken.totalSupply();
-                    const remainingAmountForTreasury = totalSupply.sub(totalTransferOutAmount);
+                    const initAmountForEthgasRebate = parseTokenAmount(tokensConfigObj["GWEI"].InitAmountForEthgasRebate.toString(), "GWEI")
+                    recipients.push(ethgasRebateDeploy.address);
+                    amounts.push(initAmountForEthgasRebate);
+                    console.log(`pending to transfer ${initAmountForEthgasRebate} to EthgasRebate ${ethgasRebateDeploy.address}`)
+                    const remainingAmountForTreasury = totalSupply.sub(totalTransferOutAmount).sub(initAmountForEthgasRebate);
                     recipients.push(treasuryAddress);
                     amounts.push(remainingAmountForTreasury);
+                    console.log(`pending to transfer ${remainingAmountForTreasury} to EthgasPool ${treasuryAddress}`)
                     console.log(`Executing ${recipients.length} transfers using BatchTransfer contract...`);
                     
                     // Approve the BatchTransfer contract to spend tokens
@@ -122,4 +132,4 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 export default func;
 func.tags = ["BatchTransferFund"];
-func.dependencies = ["EthgasTokenLock", "EthgasToken"];
+// func.dependencies = ["EthgasTokenLock", "EthgasToken"];

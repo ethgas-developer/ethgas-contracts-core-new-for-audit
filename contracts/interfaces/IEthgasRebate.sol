@@ -63,7 +63,7 @@ interface IEthgasRebate{
     ///@notice Emitted an address is whitelisted for deposit 
     ///@param depositor The address of the depositor
     ///@param status The status of the whitelist.
-	event DepositWhitelistStatusChagned(
+	event DepositWhitelistStatusChanged(
 		address depositor, bool status
 	);
 

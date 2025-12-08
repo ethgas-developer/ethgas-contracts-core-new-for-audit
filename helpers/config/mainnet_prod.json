@@ -1,28 +1,24 @@
 {
-    "EthgasStakingSupportedTokens": [
-        "WETH",
-        "WSTETH",
-        "USDC"
-    ],
     "EthgasPoolSupportedTokens": [
         "WETH"
     ],
-    "EthgasRewardSupportedTokens": [
-        "WETH"
-    ],
     "EthgasRebateSupportedTokens": [
-        "WETH"
+        "WETH", "GWEI"
     ],
     "EthgasToken": {
         "name": "ETHGas Gwei Token",
         "symbol": "GWEI",
-        "totalSupply": "1000000000"
+        "totalSupply": "10000000000"
     },
     "TimelockControllerMinDelayInSecond": 259200,
     "Tokens": {
         "WETH": {
             "daily_withdrawal_cap": 10,
             "daily_payout_cap": 27
+        },
+        "GWEI": {
+            "daily_withdrawal_cap": 50000000,
+            "InitAmountForEthgasRebate": 50000000
         }
     }
 }

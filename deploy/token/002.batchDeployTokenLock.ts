@@ -6,17 +6,6 @@ import {  Contract, Wallet } from "ethers";
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { ACLManager } from "../../typechain";
 
-// // Helper function to calculate time based on months
-const moveTime = (time, months) => {
-    const date = new Date(time * 1000);
-    return Math.round(+date.setMonth(date.getMonth() + months) / 1000);
-};
-
-//TODO it is for testing switch to day instead of month
-// const moveTime = (time, hours) => {
-//     return time + hours * 60 * 60; // Adds hours in seconds
-// };
-
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const { deploy, getOrNull } = hre.deployments;
     const { deployer } = await hre.getNamedAccounts();
@@ -28,10 +17,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
           addressObj = require(`../../helpers/address/sepolia.json`); 
         } else if (hre.network.tags.hoodi === true) {
           addressObj = require(`../../helpers/address/hoodi.json`); 
-        } else if (hre.network.tags.dev_chain === true) {
-          addressObj = require(`../../helpers/address/dev_chain.json`); 
-        } else if (hre.network.tags.dev_pectra === true)  {
-            addressObj = require(`../../helpers/address/dev_pectra.json`); 
         } else {
           console.log("Error: Unknown testnet")
           throw new Error("Error: Unknown testnet")

@@ -80,16 +80,6 @@ describe("EthgasRebate", function () {
     const configObj: Record<string, any> = require(`../helpers/config/` + hre.network.name + `.json`);
     const tokensConfigObj: Record<string, Record<string, any>> = configObj["Tokens"];
     const { DEFAULT_ADMIN_ROLE } = require(`../helpers/constants`)
-    let supportedTokensArr: string[] = []
-    for (let tokenName of configObj["EthgasStakingSupportedTokens"]) {
-        supportedTokensArr.push(addressObj[tokenName]["token_address"])
-    }
-
-    let dailyWithdrawalCapArr = []
-    for (let tokenName of configObj["EthgasPoolSupportedTokens"]) {
-      dailyWithdrawalCapArr.push( parseTokenAmount(tokensConfigObj[tokenName].daily_withdrawal_cap.toString(), tokenName))
-      supportedTokensArr.push(addressObj[tokenName]["token_address"])
-    }
 
     await deployments.fixture(['EthgasSetup','EthgasRebate']);
     
@@ -1370,7 +1360,7 @@ describe("EthgasRebate", function () {
 
     it("Set Depsoit Whitelist", async () => {
       //Previously successful withlist is revoked
-      await expect(ethgasRebate.connect(contractAdminSigner).setDepositorWhitelist([bookKeeperSigner.address], [false])).to.emit(ethgasRebate, "DepositWhitelistStatusChagned").withArgs(bookKeeperSigner.address, false);
+      await expect(ethgasRebate.connect(contractAdminSigner).setDepositorWhitelist([bookKeeperSigner.address], [false])).to.emit(ethgasRebate, "DepositWhitelistStatusChanged").withArgs(bookKeeperSigner.address, false);
       //unable to deposit now. 
       await expect(ethgasRebateAsBookKeeper["deposit()"]({value: parseTokenAmount("70", "ETH")})).to.be.revertedWith("DepositNotAllowed()");
 

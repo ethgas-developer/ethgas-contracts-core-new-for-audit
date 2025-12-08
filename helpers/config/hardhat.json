@@ -3,7 +3,7 @@
         "WETH", "WSTETH", "RETH", "STETH", "USDT", "USDC", "WBTC", "WEETH", "WEETHS", "PUFETH"
     ],
     "EthgasPoolSupportedTokens": [
-        "WETH", "WSTETH", "RETH", "STETH", "WBTC", "USDT"
+        "WETH", "WSTETH", "WBTC", "USDT"
     ],
     "EthgasRewardSupportedTokens": [
         "WETH"

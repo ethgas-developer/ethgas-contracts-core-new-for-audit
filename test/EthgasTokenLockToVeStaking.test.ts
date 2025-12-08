@@ -210,6 +210,7 @@ describe('EthgasTokenLock to Voting Escrow', () => {
 
           console.log("\nstake most of the locked amount for 2 years")
           latestTimestamp = await getLatestBlockTimestamp()
+          await tokenLock.connect(beneficiary1Signer).acceptLock();
           tx = await tokenLock.connect(beneficiary1Signer).stake(
             newState.contractBalance.sub(releasableAmountPerPeriod),
             latestTimestamp + fourYearsInSec / 2
@@ -249,12 +250,22 @@ describe('EthgasTokenLock to Voting Escrow', () => {
 
           console.log("\nadvance to 14 more months later and revoke")
           await advanceUnlockPeriods(tokenLock, 14);
-          tx = await tokenLock.connect(contractAdminSigner).revoke([ethers.constants.HashZero]);
+          const snapshotId = ethers.utils.formatBytes32String("preconf-dao.eth")
+          await tokenLock.connect(beneficiary1Signer).setSnapshotDelegate(
+            snapshotId,
+            beneficiary1Signer.address
+          )
+          console.log("delegated to snapshot preconf-dao.eth")
+          tx = await tokenLock.connect(contractAdminSigner).revoke(true);
           await expect(tx).to.emit(tokenLock, "TokensRevoked").withArgs(
             beneficiary1Signer.address, releasableAmountPerPeriod.add(10)
           )
+          await expect(tx).to.emit(tokenLock, "ClearDelegate").withArgs(
+            snapshotId
+          )
+          console.log("revoke also clears delegate from preconf-dao.eth")
           await expect(tokenLock.connect(contractAdminSigner).withdrawRevoked()).to.be.revertedWith("ERC20InsufficientBalance");
-          console.log("failed to withdraw revoked amount as the lock didn't expire")
+          console.log("failed to withdraw revoked amount as the ve lock didn't expire")
           newState = await getState();
           expect(newState.vestedAmount).to.eq(releasableAmountPerPeriod.mul(17));
           expect(newState.revokedAmount.sub(10)).to.eq(releasableAmountPerPeriod);
@@ -269,14 +280,14 @@ describe('EthgasTokenLock to Voting Escrow', () => {
           console.log("\nadvance to 9 more months later")
           await advanceUnlockPeriods(tokenLock, 9);
           await expect(veToken.connect(beneficiary1Signer).withdraw()).to.be.revertedWith("The lock didn't expire");
-          console.log("failed to unstake unlocked amount as the lock didn't expire")
+          console.log("failed to unstake on behalf of beneficiary as the ve lock hasn't expire")
           tx = await tokenLock.connect(deployerSigner).unstake();
           await expect(tx).to.emit(tokenLock, "TokensUnstaked");
           tx = await tokenLock.connect(beneficiary1Signer).release(
             false,
             0
           )
-          console.log("succeed to unstake locked amount and release it")
+          console.log("succeed to unstake on behalf of the vesting contract and release it")
           await expect(tx).to.emit(tokenLock, "TokensReleased").withArgs(
             beneficiary1Signer.address, releasableAmountPerPeriod.mul(14)
           )

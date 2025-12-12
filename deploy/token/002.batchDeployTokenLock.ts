@@ -26,6 +26,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     } else {
         addressObj = require(`../../helpers/address/mainnet.json`);
     }
+    const configObj = require(`../../helpers/config/` + hre.network.name + `.json`);
 
     let deployerSigner: Wallet | SignerWithAddress = await ethers.getSigner(deployer);
     if (hre.network.tags.mainnet === true) {
@@ -97,7 +98,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
                         },
                         addressObj["VEGWEI"]["token_address"],
                         addressObj["snapshotDelegateRegistry"]["address"],
-                        addressObj["feeDistributor"]["address"]
+                        addressObj["feeDistributor"]["address"],
+                        configObj["earliestStakingTimeForTokenLock"]
                     ]
                     console.log(args)
                     if (hre.network.tags.mainnet === true) {

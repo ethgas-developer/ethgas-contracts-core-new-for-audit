@@ -216,10 +216,10 @@ contract EthgasRebate is Pausable, IEthgasRebate, ReentrancyGuard {
                 if (_isStake && token == address(ethgasToken)) {
                     IVotingEscrow.LockedBalance memory l = veToken.locked(msg.sender);
                     ethgasToken.approve(address(veToken), totalClaimAmount);
-                    if (l.amount > 0) {
+                    if (l.end > block.timestamp) {
                         veToken.increase_amount_for(msg.sender, totalClaimAmount);
                         emit RewardStaked(msg.sender, totalClaimAmount, 0);
-                    } else {
+                    } else if (l.amount == 0) {
                         if (_initUnlockTime <= block.timestamp) { 
                             revert InvalidUnlockTime();
                         }
@@ -228,6 +228,8 @@ contract EthgasRebate is Pausable, IEthgasRebate, ReentrancyGuard {
                         }
                         veToken.create_lock_for(msg.sender, totalClaimAmount, _initUnlockTime);
                         emit RewardStaked(msg.sender, totalClaimAmount, _initUnlockTime);
+                    } else {
+                        revert CannotStakeForExpiredLock();
                     }
 
                 } else {

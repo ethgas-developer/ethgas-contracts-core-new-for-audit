@@ -18,41 +18,29 @@ const namedAccounts = {
 
     default: 0,
     hoodi_prod: `privatekey://${process.env.TESTNET_DEPLOYER_PRIVATE_KEY}`,
-    sepolia_temp: `privatekey://${process.env.TESTNET_DEPLOYER_PRIVATE_KEY}`,
     sepolia_prod: `privatekey://${process.env.TESTNET_DEPLOYER_PRIVATE_KEY}`,
-    dev_chain: `privatekey://${process.env.TESTNET_DEPLOYER_PRIVATE_KEY}`,
   },
   contractAdmin: {
     1: "0xbA362D164711Df2c8240eA041250D15E8dCe7A63", // mainnet
 
     default: 1,
-    hoodi_prod: `privatekey://${process.env.TESTNET_ADMIN_PRIVATE_KEY}`,
-    sepolia_temp: "0xaFA32cfab3bCf84f408fCCaF7908752C481ECBC6",
-    dev_chain: "0xE4014aC823f84Cb02F1eB16b52aeF85FBBE0e925",
+    hoodi_prod: "0x06111e5791568ed72e368df73d5b3126ab3b82e4",
   },
   treasurer: {
     1: "0x909aA06EaecAbd8B60278bE5Db9d3d573229743b", // mainnet
 
     default: 2,
-    holesky_temp: "0x06111e5791568Ed72E368DF73D5B3126ab3B82E4",
-    sepolia_temp: "0x06111e5791568Ed72E368DF73D5B3126ab3B82E4",
-    dev_chain: "0x24B1F5A899d923f5e149D404F5F5F50FcE3da904",
+    private_chain: "0x9ea00D04Fba18977C7Dd6eDDBF66E5c3941a23Ee"
   },
   proposer: {
     1: "0xbA362D164711Df2c8240eA041250D15E8dCe7A63", // mainnet
 
     default: 3,
-    holesky_temp: "0xaFA32cfab3bCf84f408fCCaF7908752C481ECBC6",
-    sepolia_temp: "0xaFA32cfab3bCf84f408fCCaF7908752C481ECBC6",
-    dev_chain: "0xE4014aC823f84Cb02F1eB16b52aeF85FBBE0e925",
   },
   pauser: {
     1: "0x52195c914e0cDe4cEc2759d7079c56da04c13f9b", // mainnet Lok
     
     default: 4,
-    holesky_temp: "0xE4014aC823f84Cb02F1eB16b52aeF85FBBE0e925",
-    sepolia_temp: "0xE4014aC823f84Cb02F1eB16b52aeF85FBBE0e925",
-    dev_chain: "0xE4014aC823f84Cb02F1eB16b52aeF85FBBE0e925",
   },
   pauser1: {
     1: "0x95bf2510d1fB042AEe4996da23911DA16c0bA8b6", // mainnet Calvin
@@ -67,15 +55,12 @@ const namedAccounts = {
     1: "0xbA362D164711Df2c8240eA041250D15E8dCe7A63", // mainnet
     
     default: 5,
-    holesky_temp: "0xaFA32cfab3bCf84f408fCCaF7908752C481ECBC6",
-    sepolia_temp: "0xaFA32cfab3bCf84f408fCCaF7908752C481ECBC6",
-    dev_chain: "0xE4014aC823f84Cb02F1eB16b52aeF85FBBE0e925",
+    private_chain: "0xA9394a38c7FB53e47f43F5E92fE9230c799BBfDc"
   },
   payouter: {
     1: "0xbCB61AD7B2d7949ecAEfC77Adbd5914813AEeFfa", // mainnet
 
     default: 6,
-    dev_chain: "0x427Bc41A1b406636D7E6f520a054FcA6ccbBfAe5"
   },
   user0: {
     default: 7,
@@ -106,6 +91,7 @@ const config: HardhatUserConfig = {
           }
         }
       },
+      {version: "0.7.2"},
       {version: "0.8.12"},
       {version: "0.8.24"},
       {
@@ -163,18 +149,11 @@ const config: HardhatUserConfig = {
       tags: ["testnet", "sepolia"],
       timeout: 1800000
     },
-    dev_chain: {
-      url: `http://18.163.215.219:8545`,
+    private_chain: {
+      url: "http://18.163.100.216:29611",
       saveDeployments: true,
-      tags: ["testnet","dev_chain"],
       timeout: 1800000,
       gasPrice: 50000000000
-    },
-    dev_pectra: {
-      url: `http://16.163.4.133:8545`,
-      saveDeployments: true,
-      tags: ["testnet","dev_pectra"],
-      timeout: 1800000
     },
     sepolia_temp: {
       url: `https://ethereum-sepolia-rpc.publicnode.com`,

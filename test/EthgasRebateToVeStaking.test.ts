@@ -10,7 +10,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { EthgasRebate, ACLManager, IWETH, IERC20, TestERC20, TimelockController} from '../typechain';
 const {  DEFAULT_ADMIN_ROLE, TREASURER_ROLE, PROPOSER_ROLE, EXECUTOR_ROLE } = require(`../helpers/constants`)
 import { Interface } from "ethers/lib/utils";
-
+import { advanceTimeAndBlock} from './lock_network'
 const { parseTokenAmount, formatTokenAmount } = require(`../helpers/utils`)
 import chaiAsPromised from 'chai-as-promised';
 import chai from "chai";
@@ -142,7 +142,7 @@ describe("EthgasRebate to Voting Escrow", function () {
       await ethgasRebateAsBookKeeper.updateMerkleRoot(merkleTree.getHexRoot(), GAS_REBATE_CATEGORY);
       await ethgasRebateAsBookKeeper.updateMerkleRootInfo(true, oneYearInSec, GAS_REBATE_CATEGORY);
       
-      let sendAmount = parseTokenAmount("178", "ETH");
+      let sendAmount = parseTokenAmount("278", "ETH");
       await ( await ethgasToken.connect(deployerSigner).approve(ethgasRebate.address, sendAmount) ).wait();
       await (await ethgasRebateAsDeployer["deposit(address[],uint256[])"]([GWEI_ADDRESS], [sendAmount])).wait();
       const whitelistedAddresses = Array(30).fill(ethers.constants.AddressZero);
@@ -179,6 +179,7 @@ describe("EthgasRebate to Voting Escrow", function () {
       await expect(tx).revertedWith("InvalidUnlockTime")
 
       // 2nd tx succeed
+      const user0UnlockTime = currentTimestamp + oneYearInSec * 2
       console.log("\nuser0 claim and stake 2 years")
       tx = ethgasRebate.connect(userSigners[0]).claimReward(
         [
@@ -188,15 +189,19 @@ describe("EthgasRebate to Voting Escrow", function () {
         proof,
         GAS_REBATE_CATEGORY,
         true,
-        currentTimestamp + oneYearInSec * 2
+        user0UnlockTime
       )
       await expect(tx).to.emit(ethgasRebate, "RewardClaimed")
         .withArgs(
           user0Address, ethgasToken.address, amount
         )
+      await expect(tx).to.emit(ethgasRebate, "RewardStaked")
+        .withArgs(
+          user0Address, amount, user0UnlockTime
+        )
       console.log("Gwei claimed:", formatTokenAmount(amount, "GWEI"))
       await expect(tx).emit(ethgasRebate, "RewardStaked")
-        .withArgs(user0Address, amount, currentTimestamp + oneYearInSec * 2);
+        .withArgs(user0Address, amount, user0UnlockTime);
       expect(await ethgasToken.balanceOf(user0Address)).to.equal(0);
       console.log("veGwei balance:", formatTokenAmount(await veToken.balanceOf(user0Address), "GWEI"))
 
@@ -239,6 +244,10 @@ describe("EthgasRebate to Voting Escrow", function () {
       await expect(tx).to.emit(ethgasRebate, "RewardClaimed")
         .withArgs(
           user1Address, ethgasToken.address, amount2
+        )
+      await expect(tx).to.emit(ethgasRebate, "RewardStaked")
+        .withArgs(
+          user1Address, amount2, currentTimestamp + oneYearInSec
         )
       console.log("Gwei claimed:", formatTokenAmount(amount2, "GWEI"))
       await expect(tx).emit(ethgasRebate, "RewardStaked")
@@ -284,7 +293,70 @@ describe("EthgasRebate to Voting Escrow", function () {
       console.log("Gwei claimed:", formatTokenAmount(amount3, "GWEI"))
       await expect(tx).emit(ethgasRebate, "RewardStaked")
         .withArgs(user0Address, amount3, 0);
+      await expect(tx).to.emit(ethgasRebate, "RewardStaked")
+        .withArgs(
+          user0Address, amount3, 0
+        )
       expect(await ethgasToken.balanceOf(user0Address)).to.equal(0);
+      console.log("veGwei balance:", formatTokenAmount(await veToken.balanceOf(user0Address), "GWEI"))
+
+      currentTimestamp = await getLatestBlockTimestamp()
+      await advanceTimeAndBlock(user0UnlockTime - currentTimestamp)
+      console.log("\n2 years later")
+      const amount4 = parseTokenAmount("100", "ETH");
+      const leaves4 = [
+        ethers.utils.solidityKeccak256(
+          ["uint256"],
+          [Math.floor(Math.random() * 100000)]
+        ),
+        ethers.utils.solidityKeccak256(
+          ["address", "address", "uint256"],
+          [userSigners[0].address, GWEI_ADDRESS, amount4]
+        )
+      ]
+      const tree4 = new MerkleTree(leaves4, keccak256, { sortPairs: true });
+      await ethgasRebateAsBookKeeper.startRestrictedMode();
+      await ethgasRebateAsBookKeeper.updateMerkleRoot(tree4.getHexRoot(), GAS_REBATE_CATEGORY);
+      await ethgasRebateAsBookKeeper.endRestrictedMode();
+      console.log("user0 fail to claim and stake again as the original lock expired")
+      const proof4 = tree4.getHexProof(leaves4[1]);
+      currentTimestamp = await getLatestBlockTimestamp()
+      tx = ethgasRebate.connect(userSigners[0]).claimReward(
+        [
+          {user: user0Address, token: GWEI_ADDRESS, claimAmount: amount4}
+        ],
+        [GWEI_ADDRESS],
+        proof4,
+        GAS_REBATE_CATEGORY,
+        true,
+        currentTimestamp + oneYearInSec * 4
+      )
+      await expect(tx).revertedWith("CannotStakeForExpiredLock")
+      await veToken.connect(userSigners[0]).withdraw()
+      console.log("user0 withdraw the original stake")
+      tx = ethgasRebate.connect(userSigners[0]).claimReward(
+        [
+          {user: user0Address, token: GWEI_ADDRESS, claimAmount: amount4}
+        ],
+        [GWEI_ADDRESS],
+        proof4,
+        GAS_REBATE_CATEGORY,
+        true,
+        currentTimestamp + oneYearInSec * 4
+      )
+      console.log("user0 can claim and stake 4 year")
+      await expect(tx).to.emit(ethgasRebate, "RewardClaimed")
+        .withArgs(
+          user0Address, ethgasToken.address, amount4
+        )
+      console.log("Gwei claimed:", formatTokenAmount(amount4, "GWEI"))
+      await expect(tx).emit(ethgasRebate, "RewardStaked")
+        .withArgs(user0Address, amount4, currentTimestamp + oneYearInSec * 4);
+      await expect(tx).to.emit(ethgasRebate, "RewardStaked")
+        .withArgs(
+          user0Address, amount4, currentTimestamp + oneYearInSec * 4
+        )
+      expect(await ethgasToken.balanceOf(user0Address)).to.equal(parseTokenAmount("162", "GWEI"));
       console.log("veGwei balance:", formatTokenAmount(await veToken.balanceOf(user0Address), "GWEI"))
     });
 

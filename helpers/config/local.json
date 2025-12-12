@@ -11,6 +11,7 @@
         "totalSupply": "1000000000"
     },
     "TimelockControllerMinDelayInSecond": 3600,
+    "earliestStakingTimeForTokenLock": 1719014400,
     "Tokens": {
         "WETH": {
             "daily_withdrawal_cap": 50,

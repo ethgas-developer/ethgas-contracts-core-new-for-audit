@@ -54,16 +54,17 @@ contract EthgasTokenLock is IEthgasTokenLock {
     
     // Snapshot Voting Delegation
     IDelegateRegistry public immutable delegateRegistry;
-    bytes32[] public snapshotDelegateIds;
+
+    uint256 public immutable earliestStakingTime;
 
     // -- Events --
 
     event TokensReleased(address indexed beneficiary, uint256 amount);
     event TokensWithdrawn(address indexed beneficiary, uint256 amount);
-    event RevokedTokensWithdrawn(uint256 amount);
     event TokensRevoked(address indexed beneficiary, uint256 amount);
-    event TokensStaked(address indexed beneficiary, uint256 amount);
+    event TokensStaked(address indexed beneficiary, uint256 amount, uint256 initUnlockTime);
     event TokensUnstaked();
+    event SetAutoClaim(bool isAutoClaim);
     event RewardClaimed(address indexed receiver, uint256 amount);
     event SetDelegate(bytes32 indexed id, address indexed delegate);
     event ClearDelegate(bytes32 indexed id);
@@ -71,6 +72,7 @@ contract EthgasTokenLock is IEthgasTokenLock {
     event LockAccepted();
     event LockCanceled();
     event AclManagerChanged(address aclManager);
+    error CannotStakeForExpiredLock();
 
     /**
      * @dev Only allow calls from the beneficiary of the contract
@@ -121,7 +123,8 @@ contract EthgasTokenLock is IEthgasTokenLock {
         VestingInfo memory _vestingInfo,
         IVotingEscrow _veToken,
         IDelegateRegistry _delegateRegistry,
-        IFeeDistributor _feeDistributor
+        IFeeDistributor _feeDistributor,
+        uint256 _earliestStakingTime
     ) {
         require(address(_aclManager) != address(0), "ACLManager cannot be zero");
         require(_beneficiary != address(0), "Beneficiary cannot be zero");
@@ -149,6 +152,8 @@ contract EthgasTokenLock is IEthgasTokenLock {
         unlockStartTime = _unlockInfo.unlockStartTime;
         unlockEndTime = _unlockInfo.unlockEndTime;
         initialUnlockAmount = _unlockInfo.initialUnlockAmount;
+
+        earliestStakingTime = _earliestStakingTime;
 
         if (_revocable) {
             require(_vestingInfo.vestingCliffTime != 0, "Vesting cliff time must be set");
@@ -406,9 +411,7 @@ contract EthgasTokenLock is IEthgasTokenLock {
     function surplusAmount() public view override returns (uint256) {
         uint256 balance = currentBalance();
         uint256 outstandingAmount = totalOutstandingAmount();
-        if (isRevoked == true) {
-            return 0;
-        } else if (balance > outstandingAmount) {
+        if (balance > outstandingAmount) {
             return balance - outstandingAmount;
         }
         return 0;
@@ -430,12 +433,15 @@ contract EthgasTokenLock is IEthgasTokenLock {
         if (_isStake) {
             IVotingEscrow.LockedBalance memory l = veToken.locked(msg.sender);
             token.approve(address(veToken), amountToRelease);
-            if (l.amount > 0) {
+            if (l.end > block.timestamp) {
                 veToken.increase_amount_for(msg.sender, amountToRelease);
-            } else {
+                emit TokensStaked(beneficiary, amountToRelease, 0);
+            } else if (l.amount == 0) {
                 veToken.create_lock_for(msg.sender, amountToRelease, _initUnlockTime);
+                emit TokensStaked(beneficiary, amountToRelease, _initUnlockTime);
+            } else {
+                revert CannotStakeForExpiredLock();
             }
-            emit TokensStaked(beneficiary, amountToRelease);
         } else {
             token.safeTransfer(beneficiary, amountToRelease);
         }
@@ -447,22 +453,30 @@ contract EthgasTokenLock is IEthgasTokenLock {
      * @notice cannot change lock time after initial lock
      */
     function stake(uint256 _amount, uint256 _initUnlockTime) external onlyBeneficiary {
+        require(currentTime() >= earliestStakingTime, "cannot stake before the earliestStakingTime");
         require(_amount <= currentBalance(), "No available balance");
+        require(managedAmount == vestedAmount() || isRevoked, "can only stake when fully vested or after revoked");
         require(isAccepted == true, "Cannot stake without accepting contract");
         IVotingEscrow.LockedBalance memory l = veToken.locked(address(this));
         token.approve(address(veToken), _amount);
-        if (l.amount > 0) {
+        if (l.end > block.timestamp) {
             veToken.increase_amount(_amount);
-        } else {
+            emit TokensStaked(address(this), _amount, 0);
+        } else if (l.amount == 0) {
             veToken.create_lock(_amount, _initUnlockTime);
+            emit TokensStaked(address(this), _amount, _initUnlockTime);
+        } else {
+            revert CannotStakeForExpiredLock();
         }
-        emit TokensStaked(address(this), _amount);
     }
 
     function getStakingInfo() external view returns (IVotingEscrow.LockedBalance memory) {
         return veToken.locked(address(this));
     }
 
+    /**
+     * @notice anyone can call this function to help beneficiary to claim reward
+     */
     function claimStakingReward() external {
         require(currentTime() >= unlockStartTime, "cannot claim before unlockStartTime");
         uint256 initBalance = currentBalance();
@@ -472,15 +486,14 @@ contract EthgasTokenLock is IEthgasTokenLock {
         if (rewardToRelease == 0) {
             return;
         }
-        if (!isRevoked) {
-            token.safeTransfer(beneficiary, rewardToRelease);
-            emit RewardClaimed(beneficiary, rewardToRelease);
-        } else {
-            // only admin can claim reward for revoked contract, even revoked amount is less than staked amount
-            aclManager.checkAdminRole(msg.sender);
-            token.safeTransfer(msg.sender, rewardToRelease);
-            emit RewardClaimed(msg.sender, rewardToRelease);
-        }
+        token.safeTransfer(beneficiary, rewardToRelease);
+        emit RewardClaimed(beneficiary, rewardToRelease);
+
+    }
+
+    function setAutoClaim(bool _isAutoClaim) external onlyBeneficiary {
+        feeDistributor.set_auto_claim(_isAutoClaim);
+        emit SetAutoClaim(_isAutoClaim);
     }
 
     /**
@@ -495,17 +508,11 @@ contract EthgasTokenLock is IEthgasTokenLock {
      * @notice delegate staked and unvested token from vesting contract address to an EOA to perform voting on Snapshot
      */
     function setSnapshotDelegate(bytes32 _id, address _delegate) external onlyBeneficiary {
-        require(isRevoked == false, "revoked contract cannot perform delegation");
         delegateRegistry.setDelegate(_id, _delegate);
-        snapshotDelegateIds.push(_id);
         emit SetDelegate(_id, _delegate);
     }
 
     function clearSnapshotDelegate(bytes32 _id) external onlyBeneficiary {
-        _clearSnapshotDelegate(_id);
-    }
-
-    function _clearSnapshotDelegate(bytes32 _id) internal {
         if (delegateRegistry.delegation(address(this), _id) != address(0)) {
             delegateRegistry.clearDelegate(_id);
             emit ClearDelegate(_id);
@@ -529,9 +536,8 @@ contract EthgasTokenLock is IEthgasTokenLock {
     /**
      * @notice Revokes a vesting schedule and return the unvested tokens to the admin
      * @dev Vesting schedule is always calculated based on managed tokens
-     * @param _isClearDelegate it should always be true unless there is an issue for calling _clearSnapshotDelegate(_id)
      */
-    function revoke(bool _isClearDelegate) external override onlyAdminRole {
+    function revoke() external override onlyAdminRole {
         require(revocable, "Contract is non-revocable");
         require(isRevoked == false, "Already revoked");
 
@@ -540,20 +546,7 @@ contract EthgasTokenLock is IEthgasTokenLock {
 
         revokedAmount = unvestedAmount;
         isRevoked = true;
-
-        emit TokensRevoked(beneficiary, unvestedAmount);
-
-        if (_isClearDelegate) {
-            for (uint256 i; i < snapshotDelegateIds.length; i++) {
-                _clearSnapshotDelegate(snapshotDelegateIds[i]);
-            }
-        }
-    }
-
-    function withdrawRevoked() external onlyAdminRole {
-
         token.safeTransfer(msg.sender, revokedAmount);
-
-        emit RevokedTokensWithdrawn(revokedAmount);
+        emit TokensRevoked(beneficiary, unvestedAmount);
     }
 }

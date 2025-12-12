@@ -3,8 +3,11 @@ pragma solidity ^0.8.28;
 
 interface IFeeDistributor {
     function claim(address _addr) external;
-    function claim_and_stake(address _addr, uint256 _initUnlockTime) external;
+    function claim_and_stake(address _addr) external;
     function claim_many(address[20] memory _receivers) external;
+    function claim_many_and_stake(address[20] memory _receivers, uint256[20] memory _unlock_times) external;
+    function set_auto_claim(bool _is_auto_claim) external;
+    function whitelist_claimer(address claimer, bool is_whitelist) external;
     function toggle_allow_checkpoint_token() external;
     function checkpoint_token() external;
     function checkpoint_total_supply() external;

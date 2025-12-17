@@ -52,7 +52,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
 
     let dailyWithdrawalCapArr = []
-    for (let tokenName of configObj["EthgasRebateSupportedTokens"]) {
+    for (let tokenName of configObj["EthgasAirdropSupportedTokens"]) {
       dailyWithdrawalCapArr.push( parseTokenAmount(tokensConfigObj[tokenName].daily_withdrawal_cap.toString(), tokenName))
       supportedTokensArr.push(addressObj[tokenName]["token_address"])
     }
@@ -68,7 +68,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       await new Promise(resolve => setTimeout(resolve, 15 * 1000));
     }
 
-    await deploy('EthgasRebate', { 
+    await deploy('EthgasAirdrop', { 
         contract: "EthgasRebate",
         from: deployerFoundation,
         log: true,
@@ -88,4 +88,4 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 export default func;
-func.tags = ['EthgasRebate'];
+func.tags = ['EthgasAirdrop'];

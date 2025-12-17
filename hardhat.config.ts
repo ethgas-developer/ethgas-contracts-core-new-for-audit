@@ -73,6 +73,54 @@ const namedAccounts = {
   },
   user3: {
     default: 10,
+  },
+  deployerFoundation: {
+    1: `privatekey://${process.env.MAINNET_DEPLOYER_FOUNDATION_PRIVATE_KEY}`, // mainnet
+
+    default: 0,
+    hoodi_prod: `privatekey://${process.env.TESTNET_DEPLOYER_FOUNDATION_PRIVATE_KEY}`,
+    sepolia_prod: `privatekey://${process.env.TESTNET_DEPLOYER_FOUNDATION_PRIVATE_KEY}`,
+  },
+  contractAdminFoundation: {
+    1: "0x...", // mainnet
+
+    default: 1,
+    hoodi_prod: "0x2f6c9ce843a527f6deb6d50d812337404b58baf0",
+  },
+  treasurerFoundation: {
+    1: "0x6933b19C5745F04A393ad9f116941FbC0d2f1203", // mainnet
+
+    default: 2,
+    hoodi_prod: "0x65aBF5F4bd560541f0CE965d01a660D21C41a33A",
+    private_chain: "0x9ea00D04Fba18977C7Dd6eDDBF66E5c3941a23Ee"
+  },
+  proposerFoundation: {
+    1: "0x...", // mainnet
+
+    default: 3,
+    hoodi_prod: "0x2f6c9ce843a527f6deb6d50d812337404b58baf0",
+  },
+  pauserFoundation: {
+    1: "0x...", // mainnet Lok
+    
+    default: 4,
+    hoodi_prod: "0x5e5f6901a5457e7a39c10e3f886d1275a7fc0df4"
+  },
+  pauser1Foundation: {
+    1: "0x...", // mainnet Calvin
+  },
+  pauser2Foundation: {
+    1: "0x...", // mainnet Knucle
+  },
+  pauser3Foundation: {
+    1: "0x...", // mainnet Steve
+  },
+  bookKeeperFoundation: {
+    1: "0x03BDD8Da5C30382EbB8fcCEB1FCfFd45fF5F6618", // mainnet
+    
+    default: 5,
+    hoodi_prod: "0xA9394a38c7FB53e47f43F5E92fE9230c799BBfDc",
+    private_chain: "0xA9394a38c7FB53e47f43F5E92fE9230c799BBfDc"
   }
 };
 
@@ -191,14 +239,6 @@ const config: HardhatUserConfig = {
       hoodi: process.env.ETHERSCAN_API_KEY as string,
     },
     customChains: [
-      {
-        network: "testnet",
-        chainId: 17000,
-        urls: {
-          apiURL: "https://api-holesky.etherscan.io/api" as string,
-          browserURL: "https://holesky.etherscan.io/" as string
-        }
-      },
       {
         network: "hoodi",
         chainId: 560048,

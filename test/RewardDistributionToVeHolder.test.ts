@@ -34,14 +34,14 @@ const setupTest = (params: {
   vestingEndTime: number,
   vestingCliffAmount: BigNumber
 }) => deployments.createFixture(async ({ deployments }) => {
-  const { deployer, contractAdmin, user0, user1, user2, user3 } = await getNamedAccounts();
+  const { deployerFoundation } = await getNamedAccounts();
   const { deploy } = deployments
 
-  const ethgasPoolDeploy = await deployments.get('EthgasPool');
-  const aclManagerDeploy = await deployments.get('ACLManager');
+  const ethgasPoolDeploy = await deployments.get('EthgasPoolFoundation');
+  const aclManagerDeploy = await deployments.get('ACLManagerFoundation');
   const ethgasToken = await ethers.getContractAt("contracts/dependencies/openzeppelin-v5.0.1/token/IERC20.sol:IERC20", GWEI_ADDRESS);
   let tokenLockDeploy = await deploy("EthgasTokenLock", {
-      from: deployer,
+      from: deployerFoundation,
       log: true,
       args: [
         aclManagerDeploy.address,
@@ -129,9 +129,9 @@ describe('EthgasTokenLock to Voting Escrow', () => {
   }
 
   before(async function () {
-    const { deployer, contractAdmin, user0, user1, user2, user3 } = await getNamedAccounts();
-    deployerSigner = await ethers.getSigner(deployer);
-    contractAdminSigner = await ethers.getSigner(contractAdmin);
+    const { deployerFoundation, contractAdminFoundation, user0, user1, user2, user3 } = await getNamedAccounts();
+    deployerSigner = await ethers.getSigner(deployerFoundation);
+    contractAdminSigner = await ethers.getSigner(contractAdminFoundation);
     userSigners = [ 
       await ethers.getSigner(user0), await ethers.getSigner(user1), await ethers.getSigner(user2), await ethers.getSigner(user3) 
     ];
@@ -176,6 +176,7 @@ describe('EthgasTokenLock to Voting Escrow', () => {
       await fundEthgasToken(tokenLock.address, await tokenLock.managedAmount())
       await fundEthgasToken(userSigners[2].address, parseTokenAmount("25000", "GWEI"))
       await fundEthgasToken(userSigners[3].address, parseTokenAmount("25000", "GWEI"))
+      await fundEthgasToken(contractAdminSigner.address, parseTokenAmount("0.1", "GWEI"))
       const whitelistedAddresses = Array(30).fill(ethers.constants.AddressZero);
       whitelistedAddresses[0] = tokenLock.address;
       whitelistedAddresses[1] = addressObj["feeDistributor"]["address"];
@@ -217,9 +218,10 @@ describe('EthgasTokenLock to Voting Escrow', () => {
           tokenLock.address, parseTokenAmount("1", "GWEI"), 0
         )
         await ethgasToken.connect(userSigners[2]).approve(veToken.address, newState.user2Balance);
-        let failedTx = veToken.connect(contractAdminSigner).create_lock_for(userSigners[2].address, newState.user2Balance, latestTimestamp + fourYearsInSec)
+        await ethgasToken.connect(contractAdminSigner).approve(veToken.address, parseTokenAmount("0.1", "GWEI"));
+        let failedTx = veToken.connect(contractAdminSigner).create_lock_for(userSigners[2].address, parseTokenAmount("0.1", "GWEI"), latestTimestamp + fourYearsInSec)
         await expect(failedTx).reverted
-        failedTx = veToken.connect(contractAdminSigner).increase_amount_for(userSigners[2].address, newState.user2Balance)
+        failedTx = veToken.connect(contractAdminSigner).increase_amount_for(userSigners[2].address, parseTokenAmount("0.1", "GWEI"))
         await expect(failedTx).reverted
         console.log("unauthorized address cannot create_lock_for() or increase_amount_for() another address")
         await veToken.connect(userSigners[2]).create_lock(newState.user2Balance, latestTimestamp + fourYearsInSec)
@@ -421,7 +423,6 @@ describe('EthgasTokenLock to Voting Escrow', () => {
         console.log("user2 veGwei balance:", formatTokenAmount(newState.user2StakedBalance, "GWEI"))
         console.log("user3 Gwei balance:", formatTokenAmount(newState.user3Balance, "GWEI"))
         console.log("user3 veGwei balance:", formatTokenAmount(newState.user3StakedBalance, "GWEI"))
-        console.log("admin Gwei balance:", formatTokenAmount(newState.adminBalance, "GWEI"))
         console.log("total veGwei:", formatTokenAmount(newState.totalStaked, "GWEI"))
 
 
@@ -482,7 +483,6 @@ describe('EthgasTokenLock to Voting Escrow', () => {
         console.log("user2 veGwei balance:", formatTokenAmount(newState.user2StakedBalance, "GWEI"))
         console.log("user3 Gwei balance:", formatTokenAmount(newState.user3Balance, "GWEI"))
         console.log("user3 veGwei balance:", formatTokenAmount(newState.user3StakedBalance, "GWEI"))
-        console.log("admin Gwei balance:", formatTokenAmount(newState.adminBalance, "GWEI"))
         console.log("total veGwei:", formatTokenAmount(newState.totalStaked, "GWEI"))
 
 
@@ -508,7 +508,6 @@ describe('EthgasTokenLock to Voting Escrow', () => {
         console.log("user2 veGwei balance:", formatTokenAmount(newState.user2StakedBalance, "GWEI"))
         console.log("user3 Gwei balance:", formatTokenAmount(newState.user3Balance, "GWEI"))
         console.log("user3 veGwei balance:", formatTokenAmount(newState.user3StakedBalance, "GWEI"))
-        console.log("admin Gwei balance:", formatTokenAmount(newState.adminBalance, "GWEI"))
         console.log("total veGwei:", formatTokenAmount(newState.totalStaked, "GWEI"))
 
 
@@ -525,7 +524,6 @@ describe('EthgasTokenLock to Voting Escrow', () => {
         await ethgasToken.connect(beneficiary1Signer).transfer(NATIVE_ETH_ADDRESS, newState.beneficiaryBalance)
         await ethgasToken.connect(userSigners[2]).transfer(NATIVE_ETH_ADDRESS, newState.user2Balance)
         await ethgasToken.connect(userSigners[3]).transfer(NATIVE_ETH_ADDRESS, newState.user3Balance)
-        await ethgasToken.connect(contractAdminSigner).transfer(NATIVE_ETH_ADDRESS, newState.adminBalance)
         await feeDistributor.connect(userSigners[2]).claim(userSigners[2].address)
         await feeDistributor.connect(userSigners[3]).claim(userSigners[3].address)
         // cannot claim on behalf of other
@@ -543,7 +541,6 @@ describe('EthgasTokenLock to Voting Escrow', () => {
         console.log("user2 veGwei balance:", formatTokenAmount(newState.user2StakedBalance, "GWEI"))
         console.log("user3 Gwei balance:", formatTokenAmount(newState.user3Balance, "GWEI"), "(approximately equal to their veGwei balance below)")
         console.log("user3 veGwei balance:", formatTokenAmount(newState.user3StakedBalance, "GWEI"))
-        console.log("admin Gwei balance:", formatTokenAmount(newState.adminBalance, "GWEI"))
         console.log("total veGwei:", formatTokenAmount(newState.totalStaked, "GWEI"))
 
         console.log("\nadvance 1 more week, users & admin transfer out gwei token, fund 9725 Gwei token in the mid of the week & claim reward")
@@ -558,7 +555,6 @@ describe('EthgasTokenLock to Voting Escrow', () => {
         await ethgasToken.connect(beneficiary1Signer).transfer(NATIVE_ETH_ADDRESS, newState.beneficiaryBalance)
         await ethgasToken.connect(userSigners[2]).transfer(NATIVE_ETH_ADDRESS, newState.user2Balance)
         await ethgasToken.connect(userSigners[3]).transfer(NATIVE_ETH_ADDRESS, newState.user3Balance)
-        await ethgasToken.connect(contractAdminSigner).transfer(NATIVE_ETH_ADDRESS, newState.adminBalance)
         await feeDistributor.connect(userSigners[2]).claim(userSigners[2].address)
         await feeDistributor.connect(userSigners[3]).claim(userSigners[3].address)
         await tokenLock.connect(contractAdminSigner).claimStakingReward();
@@ -573,7 +569,6 @@ describe('EthgasTokenLock to Voting Escrow', () => {
         console.log("user2 veGwei balance:", formatTokenAmount(newState.user2StakedBalance, "GWEI"))
         console.log("user3 Gwei balance:", formatTokenAmount(newState.user3Balance, "GWEI"))
         console.log("user3 veGwei balance:", formatTokenAmount(newState.user3StakedBalance, "GWEI"))
-        console.log("admin Gwei balance:", formatTokenAmount(newState.adminBalance, "GWEI"))
         console.log("total veGwei:", formatTokenAmount(newState.totalStaked, "GWEI"))
 
         console.log("\nuser3 extend lock to year end 2028, advance 2 more weeks, user & admin transfer out gwei token, fund Gwei token & claim reward")
@@ -601,7 +596,6 @@ describe('EthgasTokenLock to Voting Escrow', () => {
         await ethgasToken.connect(beneficiary1Signer).transfer(NATIVE_ETH_ADDRESS, newState.beneficiaryBalance)
         await ethgasToken.connect(userSigners[2]).transfer(NATIVE_ETH_ADDRESS, newState.user2Balance)
         await ethgasToken.connect(userSigners[3]).transfer(NATIVE_ETH_ADDRESS, newState.user3Balance)
-        await ethgasToken.connect(contractAdminSigner).transfer(NATIVE_ETH_ADDRESS, newState.adminBalance)
         newState = await getState();
         console.log("feeDistributor Gwei balance:", formatTokenAmount(newState.feeDistributorBalance, "GWEI"))
         console.log("beneficiary Gwei balance:", formatTokenAmount(newState.beneficiaryBalance, "GWEI"))
@@ -610,7 +604,6 @@ describe('EthgasTokenLock to Voting Escrow', () => {
         console.log("user2 veGwei balance:", formatTokenAmount(newState.user2StakedBalance, "GWEI"))
         console.log("user3 Gwei balance:", formatTokenAmount(newState.user3Balance, "GWEI"))
         console.log("user3 veGwei balance:", formatTokenAmount(newState.user3StakedBalance, "GWEI"))
-        console.log("admin Gwei balance:", formatTokenAmount(newState.adminBalance, "GWEI"))
         console.log("EthgasPool Gwei balance:", formatTokenAmount(await ethgasToken.balanceOf(ethgasPoolAddr), "GWEI"))
         console.log("total veGwei:", formatTokenAmount(newState.totalStaked, "GWEI"))
         console.log(">>> claim reward <<<")
@@ -625,7 +618,6 @@ describe('EthgasTokenLock to Voting Escrow', () => {
         console.log("user2 veGwei balance:", formatTokenAmount(newState.user2StakedBalance, "GWEI"), "(claim and stake)")
         console.log("user3 Gwei balance:", formatTokenAmount(newState.user3Balance, "GWEI"))
         console.log("user3 veGwei balance:", formatTokenAmount(newState.user3StakedBalance, "GWEI"))
-        console.log("admin Gwei balance:", formatTokenAmount(newState.adminBalance, "GWEI"))
         console.log("EthgasPool Gwei balance:", formatTokenAmount(await ethgasToken.balanceOf(ethgasPoolAddr), "GWEI"))
         console.log("total veGwei:", formatTokenAmount(newState.totalStaked, "GWEI"))
 

@@ -65,14 +65,14 @@ describe("EthgasRebate", function () {
 
   beforeEach(async function () {
     // Get signers
-    const { deployer, contractAdmin, treasurer, pauser, proposer, bookKeeper, user0, user1, user2, user3 } = await getNamedAccounts();
+    const { deployerFoundation, contractAdminFoundation, pauserFoundation, proposerFoundation, bookKeeperFoundation, user0, user1, user2, user3 } = await getNamedAccounts();
 
     
-    deployerSigner = await ethers.getSigner(deployer);
-    contractAdminSigner = await ethers.getSigner(contractAdmin);
-    pauserSigner = await ethers.getSigner(pauser);
-    proposerSigner = await ethers.getSigner(proposer);
-    bookKeeperSigner = await ethers.getSigner(bookKeeper);
+    deployerSigner = await ethers.getSigner(deployerFoundation);
+    contractAdminSigner = await ethers.getSigner(contractAdminFoundation);
+    pauserSigner = await ethers.getSigner(pauserFoundation);
+    proposerSigner = await ethers.getSigner(proposerFoundation);
+    bookKeeperSigner = await ethers.getSigner(bookKeeperFoundation);
     userSigners = [ 
       await ethers.getSigner(user0), await ethers.getSigner(user1), await ethers.getSigner(user2), await ethers.getSigner(user3) 
     ];
@@ -81,10 +81,10 @@ describe("EthgasRebate", function () {
     const tokensConfigObj: Record<string, Record<string, any>> = configObj["Tokens"];
     const { DEFAULT_ADMIN_ROLE } = require(`../helpers/constants`)
 
-    await deployments.fixture(['EthgasSetup','EthgasRebate']);
+    await deployments.fixture(['EthgasSetupFoundation','EthgasRebate']);
     
     // Deploy ACLManager
-    let aclManagerDeploy = await deployments.get('ACLManager');
+    let aclManagerDeploy = await deployments.get('ACLManagerFoundation');
     aclManager = await ethers.getContractAt('ACLManager', aclManagerDeploy.address,  contractAdminSigner ) as ACLManager;
 
     // Deploy EthgasRebate
@@ -93,7 +93,7 @@ describe("EthgasRebate", function () {
     ethgasRebate = await ethers.getContractAt('EthgasRebate', ethgasRebateDeploy.address, contractAdminSigner) as EthgasRebate;
     ethgasRebateAsBookKeeper = ethgasRebate.connect(bookKeeperSigner);
 
-    const timelockCtrlDeploy = await deployments.get('TimelockController');
+    const timelockCtrlDeploy = await deployments.get('TimelockControllerFoundation');
     timelockCtrl = await ethers.getContractAt('TimelockController', timelockCtrlDeploy.address, contractAdminSigner) as TimelockController;
 
 
@@ -1380,13 +1380,13 @@ describe("EthgasRebate", function () {
 
   describe('Timelock controlled functions', () => {
     it('timelock can update ACLManager address', async () => {
-      let { deployer, contractAdmin, pauser, proposer, treasurer, bookKeeper, payouter } = await getNamedAccounts();
+      let { deployerFoundation, contractAdminFoundation, pauserFoundation, treasurerFoundation, bookKeeperFoundation } = await getNamedAccounts();
       const { deploy } = deployments;
-      let timelockCtrlDeploy = await deployments.get('TimelockController');
+      let timelockCtrlDeploy = await deployments.get('TimelockControllerFoundation');
       const newACLManager = await deploy('ACLManagerNew', { 
-        from: deployer, log: true, autoMine: true,
+        from: deployerFoundation, log: true, autoMine: true,
         contract: 'ACLManager',
-        args: [ contractAdmin, treasurer, timelockCtrlDeploy.address, [ pauser ], bookKeeper, payouter ],
+        args: [ contractAdminFoundation, treasurerFoundation, timelockCtrlDeploy.address, [ pauserFoundation ], bookKeeperFoundation, treasurerFoundation ],
       });
       await (await timelockCtrl.connect(proposerSigner).schedule(
         ethgasRebate.address, 0, ethgasRebateInterface.encodeFunctionData("setAclManager", [newACLManager.address]), 
@@ -1405,13 +1405,13 @@ describe("EthgasRebate", function () {
     });
 
     it('non-timelock cannot update ACLManager address', async () => {
-      let { deployer, contractAdmin, pauser, proposer, treasurer, bookKeeper, payouter } = await getNamedAccounts();
+      let { deployerFoundation, contractAdminFoundation, pauserFoundation, treasurerFoundation, bookKeeperFoundation } = await getNamedAccounts();
       const { deploy } = deployments;
-      let timelockCtrlDeploy = await deployments.get('TimelockController');
+      let timelockCtrlDeploy = await deployments.get('TimelockControllerFoundation');
       const newACLManager = await deploy('ACLManagerNewNT', { 
-        from: deployer, log: true, autoMine: true,
+        from: deployerFoundation, log: true, autoMine: true,
         contract: 'ACLManager',
-        args: [ contractAdmin, treasurer, timelockCtrlDeploy.address, [ pauser ], bookKeeper, payouter ],
+        args: [ contractAdminFoundation, treasurerFoundation, timelockCtrlDeploy.address, [ pauserFoundation ], bookKeeperFoundation, treasurerFoundation ],
       });
       await expect(ethgasRebateAsBookKeeper.setAclManager(newACLManager.address)).to.be.revertedWith("AccessControl")
     });

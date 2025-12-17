@@ -217,6 +217,9 @@ contract EthgasRebate is Pausable, IEthgasRebate, ReentrancyGuard {
                     IVotingEscrow.LockedBalance memory l = veToken.locked(msg.sender);
                     ethgasToken.approve(address(veToken), totalClaimAmount);
                     if (l.end > block.timestamp) {
+                        if (l.end - block.timestamp < uint256(merkleRootInfo[_category].minUnlockDuration)) {
+                            revert InvalidUnlockTime();
+                        }
                         veToken.increase_amount_for(msg.sender, totalClaimAmount);
                         emit RewardStaked(msg.sender, totalClaimAmount, 0);
                     } else if (l.amount == 0) {

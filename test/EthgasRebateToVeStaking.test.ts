@@ -69,14 +69,14 @@ describe("EthgasRebate to Voting Escrow", function () {
 
   beforeEach(async function () {
     // Get signers
-    const { deployer, contractAdmin, treasurer, pauser, proposer, bookKeeper, user0, user1, user2, user3 } = await getNamedAccounts();
+    const { deployerFoundation, contractAdminFoundation, pauserFoundation, proposerFoundation, bookKeeperFoundation, user0, user1, user2, user3 } = await getNamedAccounts();
 
     
-    deployerSigner = await ethers.getSigner(deployer);
-    contractAdminSigner = await ethers.getSigner(contractAdmin);
-    pauserSigner = await ethers.getSigner(pauser);
-    proposerSigner = await ethers.getSigner(proposer);
-    bookKeeperSigner = await ethers.getSigner(bookKeeper);
+    deployerSigner = await ethers.getSigner(deployerFoundation);
+    contractAdminSigner = await ethers.getSigner(contractAdminFoundation);
+    pauserSigner = await ethers.getSigner(pauserFoundation);
+    proposerSigner = await ethers.getSigner(proposerFoundation);
+    bookKeeperSigner = await ethers.getSigner(bookKeeperFoundation);
     userSigners = [ 
       await ethers.getSigner(user0), await ethers.getSigner(user1), await ethers.getSigner(user2), await ethers.getSigner(user3) 
     ];
@@ -84,15 +84,15 @@ describe("EthgasRebate to Voting Escrow", function () {
     const tokensConfigObj: Record<string, Record<string, any>> = configObj["Tokens"];
     const { DEFAULT_ADMIN_ROLE } = require(`../helpers/constants`)
 
-    await deployments.fixture(['EthgasSetup','EthgasRebate']);
-    let aclManagerDeploy = await deployments.get('ACLManager');
+    await deployments.fixture(['EthgasSetupFoundation','EthgasRebate']);
+    let aclManagerDeploy = await deployments.get('ACLManagerFoundation');
     aclManager = await ethers.getContractAt('ACLManager', aclManagerDeploy.address,  contractAdminSigner ) as ACLManager;
     let ethgasRebateDeploy = await deployments.get('EthgasRebate');
     ethgasRebateInterface = new ethers.utils.Interface(ethgasRebateDeploy.abi);
     ethgasRebate = await ethers.getContractAt('EthgasRebate', ethgasRebateDeploy.address, contractAdminSigner) as EthgasRebate;
     ethgasRebateAsBookKeeper = ethgasRebate.connect(bookKeeperSigner);
     ethgasRebateAsDeployer = ethgasRebate.connect(deployerSigner);
-    const timelockCtrlDeploy = await deployments.get('TimelockController');
+    const timelockCtrlDeploy = await deployments.get('TimelockControllerFoundation');
     timelockCtrl = await ethers.getContractAt('TimelockController', timelockCtrlDeploy.address, contractAdminSigner) as TimelockController;
     wethToken = await ethers.getContractAt("IWETH", WETH_ADDRESS) as IWETH;
     usdtToken = await ethers.getContractAt("contracts/dependencies/openzeppelin-v5.0.1/token/IERC20.sol:IERC20", USDT_ADDRESS) as IERC20;
@@ -272,10 +272,24 @@ describe("EthgasRebate to Voting Escrow", function () {
       await ethgasRebateAsBookKeeper.updateMerkleRoot(newTree.getHexRoot(), GAS_REBATE_CATEGORY);
       await ethgasRebateAsBookKeeper.updateMerkleRootInfo(true, oneYearInSec * 3, GAS_REBATE_CATEGORY);
       await ethgasRebateAsBookKeeper.endRestrictedMode();
-      // 4th tx succeed, not subject to new unlock duration as the user already staked
-      console.log("\nuser0 claim and stake again")
+      console.log("\nuser0 cannot claim and stake again with an existing unlock duration shorter than the category defined 3-year duration")
       const proof3 = newTree.getHexProof(leaves[1]);
       currentTimestamp = await getLatestBlockTimestamp()
+      tx = ethgasRebate.connect(userSigners[0]).claimReward(
+        [
+          {user: user0Address, token: GWEI_ADDRESS, claimAmount: amount3}
+        ],
+        [GWEI_ADDRESS],
+        proof3,
+        GAS_REBATE_CATEGORY,
+        true,
+        0
+      )
+      await expect(tx).revertedWith("InvalidUnlockTime")
+      await ethgasRebateAsBookKeeper.startRestrictedMode();
+      await ethgasRebateAsBookKeeper.updateMerkleRootInfo(true, oneYearInSec * 1.5, GAS_REBATE_CATEGORY);
+      await ethgasRebateAsBookKeeper.endRestrictedMode();
+      console.log("update the category min unlock duration to 1.5 year, then user0 claim and stake again")
       tx = ethgasRebate.connect(userSigners[0]).claimReward(
         [
           {user: user0Address, token: GWEI_ADDRESS, claimAmount: amount3}

@@ -8,7 +8,7 @@ import { ACLManager } from "../../typechain";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const { deploy, getOrNull } = hre.deployments;
-    const { deployer } = await hre.getNamedAccounts();
+    const { deployerFoundation } = await hre.getNamedAccounts();
     const { deployments, getNamedAccounts, ethers } = hre;
 
     let addressObj: Record<string, any>;
@@ -28,15 +28,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
     const configObj = require(`../../helpers/config/` + hre.network.name + `.json`);
 
-    let deployerSigner: Wallet | SignerWithAddress = await ethers.getSigner(deployer);
+    let deployerSigner: Wallet | SignerWithAddress = await ethers.getSigner(deployerFoundation);
     if (hre.network.tags.mainnet === true) {
-        deployerSigner = (new ethers.Wallet(process.env.MAINNET_DEPLOYER_PRIVATE_KEY as string)).connect(ethers.provider)
-    } 
-    else if (hre.network.tags.testnet === true) 
-    {
-        if (process.env.TESTNET_DEPLOYER_PRIVATE_KEY != undefined) 
+        deployerSigner = (new ethers.Wallet(process.env.MAINNET_DEPLOYER_FOUNDATION_PRIVATE_KEY as string)).connect(ethers.provider)
+    } else if (hre.network.tags.testnet === true) {
+        if (process.env.TESTNET_DEPLOYER_FOUNDATION_PRIVATE_KEY != undefined) 
         {
-            deployerSigner = (new ethers.Wallet(process.env.TESTNET_DEPLOYER_PRIVATE_KEY as string)).connect(ethers.provider)
+            deployerSigner = (new ethers.Wallet(process.env.TESTNET_DEPLOYER_FOUNDATION_PRIVATE_KEY as string)).connect(ethers.provider)
         }
     }
     // Read the CSV file
@@ -75,7 +73,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
                     // Check if the contract has already been deployed
                     const existingContract = await getOrNull(contractName);
                     let tokenLockWallet;
-                    const aclManagerDeploy = await deployments.get('ACLManager');
+                    const aclManagerDeploy = await deployments.get('ACLManagerFoundation');
                     const ethgasTokenDeploy = await deployments.get('EthgasToken');
 
                     const args = [
@@ -111,7 +109,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
                         // Deploy a new EthgasTokenLock contract
                         tokenLockWallet = await deploy(contractName, {
                             contract: "EthgasTokenLock", // Specify the contract to deploy
-                            from: deployer,
+                            from: deployerFoundation,
                             log: true,
                             args
                         });

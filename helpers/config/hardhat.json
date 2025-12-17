@@ -1,12 +1,12 @@
 {
-    "EthgasStakingSupportedTokens": [
-        "WETH", "WSTETH", "RETH", "STETH", "USDT", "USDC", "WBTC", "WEETH", "WEETHS", "PUFETH"
-    ],
     "EthgasPoolSupportedTokens": [
         "WETH", "WSTETH", "WBTC", "USDT"
     ],
-    "EthgasRewardSupportedTokens": [
-        "WETH"
+    "EthgasPoolFoundationSupportedTokens": [
+        "WETH", "GWEI"
+    ],
+    "EthgasAirdropSupportedTokens": [
+        "GWEI"
     ],
     "EthgasRebateSupportedTokens": [
         "WETH"

@@ -28,7 +28,7 @@ const setupTest = (params: {
   vestingEndTime: number,
   vestingCliffAmount: BigNumber
 }) => deployments.createFixture(async ({ deployments }) => {
-  const { deployer, contractAdmin, user0, user1, user2, user3 } = await getNamedAccounts();
+  const { deployerFoundation } = await getNamedAccounts();
   const { deploy } = deployments
 
   // need to run EthgasPool to renounce admin role of deployer
@@ -38,7 +38,7 @@ const setupTest = (params: {
   const ethgasToken = await ethers.getContractAt(ethgasTokenDeploy.abi, ethgasTokenDeploy.address);
   const placeholderAddress = ethgasToken.address;
   let tokenLockDeploy = await deploy("EthgasTokenLock", {
-      from: deployer,
+      from: deployerFoundation,
       log: true,
       args: [
         aclManagerDeploy.address,
@@ -179,9 +179,9 @@ describe('EthgasTokenLock', () => {
   }
 
   before(async function () {
-    const { deployer, contractAdmin, user0, user1, user2, user3 } = await getNamedAccounts();
-    deployerSigner = await ethers.getSigner(deployer);
-    contractAdminSigner = await ethers.getSigner(contractAdmin);
+    const { deployerFoundation, contractAdminFoundation, user0, user1, user2, user3 } = await getNamedAccounts();
+    deployerSigner = await ethers.getSigner(deployerFoundation);
+    contractAdminSigner = await ethers.getSigner(contractAdminFoundation);
     userSigners = [ 
       await ethers.getSigner(user0), await ethers.getSigner(user1), await ethers.getSigner(user2), await ethers.getSigner(user3) 
     ];
@@ -972,14 +972,14 @@ describe('EthgasTokenLock', () => {
 
       describe('Timelock controlled functions', () => {
         it('timelock can update ACLManager address', async () => {
-          let { deployer, contractAdmin, pauser, treasurer, bookKeeper, payouter } = await getNamedAccounts();
+          const { deployerFoundation, contractAdminFoundation, pauserFoundation, treasurerFoundation, bookKeeper } = await getNamedAccounts();
           const { deploy } = deployments;
           const timelockCtrlDeploy = await deployments.get('TimelockController');
           const timelockCtrl = await ethers.getContractAt("TimelockController", timelockCtrlDeploy.address)
           const newACLManager = await deploy('ACLManagerNew', { 
-            from: deployer, log: true, autoMine: true,
+            from: deployerFoundation, log: true, autoMine: true,
             contract: 'ACLManager',
-            args: [ contractAdmin, treasurer, timelockCtrlDeploy.address, [ pauser ], bookKeeper, payouter ],
+            args: [ contractAdminFoundation, treasurerFoundation, timelockCtrlDeploy.address, [ pauserFoundation ], bookKeeper, treasurerFoundation ],
           });
           const tokenLockDeploy = await deployments.get('EthgasTokenLock');
     

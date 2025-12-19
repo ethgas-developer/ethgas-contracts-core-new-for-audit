@@ -27,7 +27,7 @@ interface IEthgasRebate{
     error UnauthorizedClaim(); // Thrown if primary wallet of the claim entry is not msg.sender
     error StakeRequired(); // Thrown if staking is required for the merkle tree category but the user refuses to stake
     error InvalidUnlockTime(); // Thrown if user specified unlock time is less than the min unlock time of the merkle tree category
-    
+    error CannotStakeForExpiredLock();
     
 
     /*//////////////////////////////////////////////////////////////

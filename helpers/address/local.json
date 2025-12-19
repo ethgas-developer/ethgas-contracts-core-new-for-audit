@@ -9,7 +9,7 @@
         "address": "0x469788fe6e9e9681c6ebf3bf78e7fd26fc015446"
     },
     "feeDistributor" : {
-        "address": "0x18b7CBdfFA52d1e7BB992fd50f394c5b59E20B72"
+        "address": "0x2f321ed425c82E74925488139e1556f9B76a2551"
     },
     "WETH": {
         "token_address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",

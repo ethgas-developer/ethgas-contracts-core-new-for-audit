@@ -1,12 +1,12 @@
 {
-    "EthgasStakingSupportedTokens": [
-        "WETH", "WSTETH", "RETH", "STETH", "USDT", "USDC", "WBTC", "WEETH", "WEETHS", "PUFETH"
-    ],
     "EthgasPoolSupportedTokens": [
         "WETH", "WSTETH", "WBTC", "USDT"
     ],
-    "EthgasRewardSupportedTokens": [
-        "WETH"
+    "EthgasPoolFoundationSupportedTokens": [
+        "WETH", "GWEI"
+    ],
+    "EthgasAirdropSupportedTokens": [
+        "GWEI"
     ],
     "EthgasRebateSupportedTokens": [
         "WETH"
@@ -17,6 +17,7 @@
         "totalSupply": "1000000000"
     },
     "TimelockControllerMinDelayInSecond": 3600,
+    "earliestStakingTimeForTokenLock": 1719014400,
     "Tokens": {
         "WETH": {
             "daily_withdrawal_cap": 50,

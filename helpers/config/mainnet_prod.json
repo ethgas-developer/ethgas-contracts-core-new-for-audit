@@ -2,6 +2,12 @@
     "EthgasPoolSupportedTokens": [
         "WETH"
     ],
+    "EthgasPoolFoundationSupportedTokens": [
+        "WETH", "GWEI"
+    ],
+    "EthgasAirdropSupportedTokens": [
+        "GWEI"
+    ],
     "EthgasRebateSupportedTokens": [
         "WETH", "GWEI"
     ],
@@ -11,6 +17,7 @@
         "totalSupply": "10000000000"
     },
     "TimelockControllerMinDelayInSecond": 259200,
+    "earliestStakingTimeForTokenLock": 1768435800,
     "Tokens": {
         "WETH": {
             "daily_withdrawal_cap": 10,
@@ -18,7 +25,8 @@
         },
         "GWEI": {
             "daily_withdrawal_cap": 50000000,
-            "InitAmountForEthgasRebate": 50000000
+            "daily_payout_cap": 0,
+            "InitAmountForEthgasAirdrop": 50000000
         }
     }
 }

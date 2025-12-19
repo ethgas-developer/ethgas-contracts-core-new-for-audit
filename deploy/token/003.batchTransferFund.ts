@@ -11,9 +11,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const { deploy, getOrNull } = hre.deployments;
     const { deployments, getNamedAccounts, ethers } = hre;
 
-    const { deployer } = await hre.getNamedAccounts();
-    const ethgasPoolDeploy = await deployments.get("EthgasPool");
-    const ethgasRebateDeploy = await deployments.get("EthgasRebate");
+    const { deployerFoundation } = await hre.getNamedAccounts();
+    const ethgasPoolDeploy = await deployments.get("EthgasPoolFoundation");
+    const ethgasAirdropDeploy = await deployments.get("EthgasAirdrop");
     ////////////////////////////////////
     ///////// to be confirmed //////////
     ////////////////////////////////////
@@ -24,22 +24,22 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const configObj: Record<string, any> = require(`../../helpers/config/` + hre.network.name + `.json`);
     const tokensConfigObj: Record<string, Record<string, any>> = configObj["Tokens"];
 
-    let deployerSigner: Wallet | SignerWithAddress = await ethers.getSigner(deployer);
+    let deployerSigner: Wallet | SignerWithAddress = await ethers.getSigner(deployerFoundation);
     if (hre.network.tags.mainnet === true) {
-        deployerSigner = (new ethers.Wallet(process.env.MAINNET_DEPLOYER_PRIVATE_KEY as string)).connect(ethers.provider)
+        deployerSigner = (new ethers.Wallet(process.env.MAINNET_DEPLOYER_FOUNDATION_PRIVATE_KEY as string)).connect(ethers.provider)
     } 
     else if (hre.network.tags.testnet === true) 
     {
-        if (process.env.TESTNET_DEPLOYER_PRIVATE_KEY != undefined) 
+        if (process.env.TESTNET_DEPLOYER_FOUNDATION_PRIVATE_KEY != undefined) 
         {
-            deployerSigner = (new ethers.Wallet(process.env.TESTNET_DEPLOYER_PRIVATE_KEY as string)).connect(ethers.provider)
+            deployerSigner = (new ethers.Wallet(process.env.TESTNET_DEPLOYER_FOUNDATION_PRIVATE_KEY as string)).connect(ethers.provider)
         }
     }
 
     // Deploy BatchTransfer contract (will be new each time)
     const batchTransfer = await deploy("BatchTransfer", {
         contract: "BatchTransfer",
-        from: deployer,
+        from: deployerFoundation,
         log: true,
     });
 
@@ -90,14 +90,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
                     // Calculate total amount needed
                     const totalTransferOutAmount = amounts.reduce((sum, amount) => sum.add(amount), ethers.BigNumber.from(0));
                     const totalSupply = await ethgasToken.totalSupply();
-                    const initAmountForEthgasRebate = parseTokenAmount(tokensConfigObj["GWEI"].InitAmountForEthgasRebate.toString(), "GWEI")
-                    recipients.push(ethgasRebateDeploy.address);
-                    amounts.push(initAmountForEthgasRebate);
-                    console.log(`pending to transfer ${initAmountForEthgasRebate} to EthgasRebate ${ethgasRebateDeploy.address}`)
-                    const remainingAmountForTreasury = totalSupply.sub(totalTransferOutAmount).sub(initAmountForEthgasRebate);
+                    const initAmountForEthgasAirdrop = parseTokenAmount(tokensConfigObj["GWEI"].InitAmountForEthgasAirdrop.toString(), "GWEI")
+                    recipients.push(ethgasAirdropDeploy.address);
+                    amounts.push(initAmountForEthgasAirdrop);
+                    console.log(`pending to transfer ${initAmountForEthgasAirdrop} to EthgasAirdrop ${ethgasAirdropDeploy.address}`)
+                    const remainingAmountForTreasury = totalSupply.sub(totalTransferOutAmount).sub(initAmountForEthgasAirdrop);
                     recipients.push(treasuryAddress);
                     amounts.push(remainingAmountForTreasury);
-                    console.log(`pending to transfer ${remainingAmountForTreasury} to EthgasPool ${treasuryAddress}`)
+                    console.log(`pending to transfer ${remainingAmountForTreasury} to treasury/EthgasPoolFoundation ${treasuryAddress}`)
                     console.log(`Executing ${recipients.length} transfers using BatchTransfer contract...`);
                     
                     // Approve the BatchTransfer contract to spend tokens
@@ -132,4 +132,3 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 export default func;
 func.tags = ["BatchTransferFund"];
-// func.dependencies = ["EthgasTokenLock", "EthgasToken"];

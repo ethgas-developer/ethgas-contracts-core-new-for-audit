@@ -17,7 +17,7 @@
 - for `EthgasRebateToVeStaking.test.ts`, `EthgasTokenLockToVeStaking.test.ts` or `RewardDistributionToVeHolder.test.ts`, run
 ```
 rm -rf deployments/local && npx hardhat node --no-deploy
-npx hardhat deploy --tags EthgasSetup,EthgasPool,EthgasToken --network local
+npx hardhat deploy --tags EthgasSetupFoundation,EthgasPoolFoundation,EthgasToken --network local
 # switch to ethgas-contracts-dao repo
 # make sure the token address is correct in ethgas-contracts-dao/scripts/deployment/deployment_config.py
 brownie run deployment/deploy_dao live_part_one --network hardhat
@@ -35,24 +35,34 @@ npx hardhat test test/<EthgasRebateToVeStaking or EthgasTokenLockToVeStaking or 
 # Mainnet TGE deployment procedures
 - create `helpers/token-config/tokenLock-mainnet_prod.csv` and ensure it is properly configured
 - ensure `helpers/config/mainnet_prod.json` is properly configured
+- create new addresses for new foundation roles  and fill them with enough ETH for gas
 - run
 ```
 npx hardhat deploy --tags EthgasToken --network mainnet_prod
 ```
+- update `GWEI` address of `helpers/address/mainnet.json` from the above
+```
+npx hardhat deploy --tags EthgasSetupFoundation,EthgasPoolFoundation --network mainnet_prod
+```
 - switch to `ethgas-contracts-dao` repo
-    - ensure `scripts/deployment/deployment_config.py` is properly configured, especially update the `token` address from the newly deployed contract above
+    - ensure `scripts/deployment/deployment_config.py` is properly configured
+        - update the `token` address from the newly deployed contract above
+        - double check `STAKING_START_TIME`, `ethgas_foundation_treasury` & `admin` are correct
     - run
     ```
     brownie run deployment/deploy_dao live_part_one --network mainnet
     ```
 - switch back to this repo
-- ensure `helpers/address/mainnet.json` is properly configured, especially update addresses of `GWEI`, `VEGWEI`, `feeDistributor` from the newly deployed contracts above
-- ensure addresses under `deployments/mainnet_prod` are properly configured especially `EthgasToken` & `ACLManager`
+- ensure `helpers/address/mainnet.json` is properly configured, especially update addresses of `VEGWEI` & `feeDistributor` from the newly deployed contracts above
+- ensure addresses under `deployments/mainnet_prod` are properly configured especially `EthgasToken` & `ACLManagerFoundation`
 - run below to deploy the rest
 ```
 npx hardhat deploy --tags EthgasTokenLock --network mainnet_prod
-npx hardhat deploy --tags EthgasRebate --network mainnet_prod
-npx hardhat deploy --tags BatchTransferFund --network mainnet_prod
+npx hardhat deploy --tags EthgasAirdrop --network mainnet_prod
+```
+- run below to list out hex data to create transactions for MPCVault admin
+```
+npx hardhat run scripts/tge-operations.ts --network mainnet_prod
 ```
 - run below scripts to verify contracts source code on Etherscan
 ```
@@ -60,7 +70,7 @@ npx hardhat run scripts/verifyTokenLock.ts --network mainnet_prod
 npx hardhat run scripts/verifyTge.ts --network mainnet_prod
 ```
 - manually copy and paste vyper code on Etherscan
-- run below to list out hex data to create transactions for MPCVault admin
+- run below to distribute the fund
 ```
-npx hardhat run scripts/tge-operations.ts --network mainnet_prod
+npx hardhat deploy --tags BatchTransferFund --network mainnet_prod
 ```

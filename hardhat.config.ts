@@ -146,7 +146,7 @@ const config: HardhatUserConfig = {
         version: "0.8.28",
         settings: {
           optimizer: {
-            enabled: true, // EthgasPool with false and 200 runs
+            enabled: true, // old EthgasPool with false and 200 runs
             runs: 20000
           }
         }

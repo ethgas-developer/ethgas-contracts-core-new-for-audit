@@ -500,6 +500,7 @@ contract EthgasTokenLock is IEthgasTokenLock {
      * @notice anyone can unstake as long as the ve lock has expired
      */
     function unstake() external {
+        require(isAccepted == true, "Cannot unstake without accepting contract");
         veToken.withdraw();
         emit TokensUnstaked();
     }

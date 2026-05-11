@@ -753,7 +753,7 @@ describe("EthgasRebate", function () {
           ).to.be.revertedWith("DailyWithdrawalCapReached");
         expect(await wethToken.balanceOf(userSigners[2].address)).to.equal(parseTokenAmount("0", "ETH"));
 
-        await ((await ethgasRebate.connect(contractAdminSigner).setDailyWithdrawalCap(WETH_ADDRESS, parseTokenAmount("51", "ETH")))).wait()
+        await ((await ethgasRebate.connect(contractAdminSigner).setDailyWithdrawalCap([WETH_ADDRESS], [parseTokenAmount("51", "ETH")]))).wait()
 
         await (await ethgasRebate.connect(userSigners[2]).claimReward(
           [
@@ -989,7 +989,7 @@ describe("EthgasRebate", function () {
       await token2.mint(ethgasRebate.address, parseTokenAmount("100", "USDC"));
 
       // Set daily withdrawal cap for token2
-      await ((await ethgasRebate.connect(contractAdminSigner).setDailyWithdrawalCap(token2.address, parseTokenAmount("50", "USDC")))).wait()
+      await ((await ethgasRebate.connect(contractAdminSigner).setDailyWithdrawalCap([token2.address], [parseTokenAmount("50", "USDC")]))).wait()
 
       // Create merkle tree with multiple tokens and users
       const leaves = [
@@ -1061,7 +1061,7 @@ describe("EthgasRebate", function () {
 
     it("Should handle primary and multiple sub-wallets and multiple token claims in single transaction", async function () {
       // Set daily withdrawal cap for USDT
-      await ((await ethgasRebate.connect(contractAdminSigner).setDailyWithdrawalCap(USDT_ADDRESS, parseTokenAmount("100", "USDT")))).wait()
+      await ((await ethgasRebate.connect(contractAdminSigner).setDailyWithdrawalCap([USDT_ADDRESS], [parseTokenAmount("100", "USDT")]))).wait()
 
       await ethgasRebateAsBookKeeper.endRestrictedMode();
       const user1Address = await userSigners[1].getAddress();
@@ -1372,8 +1372,138 @@ describe("EthgasRebate", function () {
       expect(END_BALANCE.sub(INIT_BALANCE)).to.eq(parseTokenAmount("2.4", "ETH"))
     });
 
+    it("admin can update daily withdrawal caps in batch", async () => {
+      const wethCap = parseTokenAmount("50", "WETH");
+      const usdtCap = parseTokenAmount("100", "USDT");
+
+      const tx = await ethgasRebate.connect(contractAdminSigner).setDailyWithdrawalCap(
+        [WETH_ADDRESS, USDT_ADDRESS],
+        [wethCap, usdtCap]
+      );
+
+      await expect(tx).to.emit(ethgasRebate, "DailyWithdrawalCapChanged").withArgs(WETH_ADDRESS, wethCap);
+      await expect(tx).to.emit(ethgasRebate, "DailyWithdrawalCapChanged").withArgs(USDT_ADDRESS, usdtCap);
+      expect(await ethgasRebate.dailyWithdrawalCap(WETH_ADDRESS)).to.eq(wethCap);
+      expect(await ethgasRebate.dailyWithdrawalCap(USDT_ADDRESS)).to.eq(usdtCap);
+    });
+
+    it("admin cannot update daily withdrawal caps with mismatched array lengths", async () => {
+      await expect(
+        ethgasRebate.connect(contractAdminSigner).setDailyWithdrawalCap(
+          [WETH_ADDRESS],
+          [parseTokenAmount("50", "WETH"), parseTokenAmount("100", "USDT")]
+        )
+      ).to.be.revertedWith("InvalidArrayLength")
+    });
+
     it('non-admin cannot update daily withdrawal cap', async () => {
-      await expect(ethgasRebateAsBookKeeper.setDailyWithdrawalCap(WETH_ADDRESS, parseTokenAmount("50", "WETH"))).to.be.revertedWith("AccessControl")
+      await expect(
+        ethgasRebateAsBookKeeper.setDailyWithdrawalCap([WETH_ADDRESS], [parseTokenAmount("50", "WETH")])
+      ).to.be.revertedWith("AccessControl")
+    });
+
+    it("withdraw funds", async () => {
+      const wethWithdrawAmount = parseTokenAmount("70", "WETH");
+      const usdtWithdrawAmount = parseTokenAmount("10.2", "USDT");
+
+      await (await ethgasRebateAsBookKeeper["deposit()"]({value: wethWithdrawAmount})).wait();
+      let walletAddress = addressObj["USDT"]["impersonate_holder_address"];
+      let sendAmount = parseTokenAmount(tokensConfigObj["USDT"]["test_fund_transfer_amount"].toString(), "USDT");
+      await network.provider.request({method: "hardhat_impersonateAccount", params: [ walletAddress ]});
+      let walletSigner = await ethers.getSigner(walletAddress);
+      await ( await usdtToken.connect(walletSigner).transfer(bookKeeperSigner.address, sendAmount) ).wait();
+      await ( await usdtToken.connect(bookKeeperSigner).approve(ethgasRebate.address, usdtWithdrawAmount) ).wait();
+      await (await ethgasRebateAsBookKeeper["deposit(address[],uint256[])"]([USDT_ADDRESS], [usdtWithdrawAmount])).wait();
+
+      const INIT_BALANCE = await wethToken.balanceOf(ethgasRebate.address)
+      const INIT_USDT_BALANCE = await usdtToken.balanceOf(ethgasRebate.address)
+      const INIT_ADMIN_BALANCE = await wethToken.balanceOf(contractAdminSigner.address)
+      const INIT_ADMIN_USDT_BALANCE = await usdtToken.balanceOf(contractAdminSigner.address)
+      const tx = await ethgasRebate.connect(contractAdminSigner).adminWithdraw(
+        [WETH_ADDRESS, USDT_ADDRESS],
+        [wethWithdrawAmount, usdtWithdrawAmount],
+        contractAdminSigner.address
+      )
+      await expect(tx).to.emit(ethgasRebate, "Withdrawal").withArgs(WETH_ADDRESS, wethWithdrawAmount, contractAdminSigner.address)
+      await expect(tx).to.emit(ethgasRebate, "Withdrawal").withArgs(USDT_ADDRESS, usdtWithdrawAmount, contractAdminSigner.address)
+      const END_BALANCE = await wethToken.balanceOf(ethgasRebate.address)
+      const END_USDT_BALANCE = await usdtToken.balanceOf(ethgasRebate.address)
+      const END_ADMIN_BALANCE = await wethToken.balanceOf(contractAdminSigner.address)
+      const END_ADMIN_USDT_BALANCE = await usdtToken.balanceOf(contractAdminSigner.address)
+      expect(INIT_BALANCE.sub(END_BALANCE)).to.eq(wethWithdrawAmount)
+      expect(INIT_USDT_BALANCE.sub(END_USDT_BALANCE)).to.eq(usdtWithdrawAmount)
+      expect(END_ADMIN_BALANCE.sub(INIT_ADMIN_BALANCE)).to.eq(wethWithdrawAmount)
+      expect(END_ADMIN_USDT_BALANCE.sub(INIT_ADMIN_USDT_BALANCE)).to.eq(usdtWithdrawAmount)
+    });
+
+    it('non-admin cannot withdraw fund', async () => {
+      await expect(
+        ethgasRebateAsBookKeeper.adminWithdraw(
+          [WETH_ADDRESS],
+          [parseTokenAmount("70", "WETH")],
+          contractAdminSigner.address
+        )
+      ).to.be.revertedWith("AccessControl")
+    });
+
+    it('admin withdraw reverts when array lengths mismatch', async () => {
+      await expect(
+        ethgasRebate.connect(contractAdminSigner).adminWithdraw(
+          [WETH_ADDRESS],
+          [parseTokenAmount("70", "WETH"), parseTokenAmount("1", "WETH")],
+          contractAdminSigner.address
+        )
+      ).to.be.reverted
+    });
+
+    it('admin withdraw reverts when receiver is zero address', async () => {
+      await expect(
+        ethgasRebate.connect(contractAdminSigner).adminWithdraw(
+          [WETH_ADDRESS],
+          [parseTokenAmount("70", "WETH")],
+          constants.AddressZero
+        )
+      ).to.be.reverted
+    });
+
+    it("admin approve emits events and updates allowances", async () => {
+      const spender = userSigners[0].address;
+      const wethApprovalAmount = parseTokenAmount("12.3", "WETH");
+      const usdtApprovalAmount = parseTokenAmount("45.6", "USDT");
+
+      expect(await wethToken.allowance(ethgasRebate.address, spender)).to.eq(0);
+      expect(await usdtToken.allowance(ethgasRebate.address, spender)).to.eq(0);
+
+      const tx = await ethgasRebate.connect(contractAdminSigner).adminApprove(
+        [WETH_ADDRESS, USDT_ADDRESS],
+        [wethApprovalAmount, usdtApprovalAmount],
+        spender
+      );
+
+      await expect(tx).to.emit(ethgasRebate, "AdminApproval").withArgs(WETH_ADDRESS, wethApprovalAmount, spender);
+      await expect(tx).to.emit(ethgasRebate, "AdminApproval").withArgs(USDT_ADDRESS, usdtApprovalAmount, spender);
+      expect(await wethToken.allowance(ethgasRebate.address, spender)).to.eq(wethApprovalAmount);
+      expect(await usdtToken.allowance(ethgasRebate.address, spender)).to.eq(usdtApprovalAmount);
+    });
+
+    it("non-admin cannot approve funds", async () => {
+      await expect(
+        ethgasRebateAsBookKeeper.adminApprove(
+          [WETH_ADDRESS],
+          [parseTokenAmount("70", "WETH")],
+          userSigners[0].address
+        )
+      ).to.be.revertedWith("AccessControl")
+    });
+
+    it("admin approve reverts when array lengths mismatch", async () => {
+      await expect(
+        ethgasRebate.connect(contractAdminSigner).adminApprove(
+          [WETH_ADDRESS],
+          [parseTokenAmount("70", "WETH"), parseTokenAmount("1", "WETH")],
+          userSigners[0].address
+        )
+      ).to.be.revertedWith("InvalidArrayLength")
     });
 
   });
@@ -1416,29 +1546,6 @@ describe("EthgasRebate", function () {
       await expect(ethgasRebateAsBookKeeper.setAclManager(newACLManager.address)).to.be.revertedWith("AccessControl")
     });
 
-    it('fund withdrawal with timelock protection', async () => {
-      const intBalance = await wethToken.balanceOf(contractAdminSigner.address);
-      await (await ethgasRebateAsBookKeeper["deposit()"]({value: parseTokenAmount("70", "ETH")})).wait();
-
-      expect(await wethToken.balanceOf(contractAdminSigner.address)).to.equal(parseTokenAmount("0", "ETH")); 
-      await (await timelockCtrl.connect(proposerSigner).schedule(
-        ethgasRebate.address, 0, ethgasRebateInterface.encodeFunctionData("adminWithdraw", [WETH_ADDRESS, contractAdminSigner.address, parseTokenAmount("70", "WETH")]), 
-        ethers.constants.HashZero, ethers.constants.HashZero, MIN_DELAY_SECS)
-      ).wait();
-
-      await network.provider.request({method:"evm_increaseTime", params:[ MIN_DELAY_SECS + 1 ]});
-      await network.provider.request({method:"evm_mine", params:[ ]});
-
-      await expect(timelockCtrl.connect(contractAdminSigner).execute(
-        ethgasRebate.address, 0, ethgasRebateInterface.encodeFunctionData("adminWithdraw", [WETH_ADDRESS, contractAdminSigner.address, parseTokenAmount("70", "WETH")]), 
-        ethers.constants.HashZero, ethers.constants.HashZero)).to.emit(ethgasRebate, "Withdrawal").withArgs(WETH_ADDRESS, contractAdminSigner.address, parseTokenAmount("70", "ETH"));
-
-      expect((await wethToken.balanceOf(contractAdminSigner.address)).sub(intBalance)).to.equal(parseTokenAmount("70", "ETH"));
-    });
-
-    it('non-timelock cannot call admin withdrawal', async () => {
-      await expect(ethgasRebateAsBookKeeper.adminWithdraw(WETH_ADDRESS, contractAdminSigner.address, parseTokenAmount("50", "WETH"))).to.be.revertedWith("AccessControl")
-    });
   });
 
 

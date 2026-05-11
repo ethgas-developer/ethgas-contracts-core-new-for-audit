@@ -4,8 +4,8 @@ pragma solidity ^0.8.28;
 import "./IACLManager.sol";
 
 
-/// @title Staking Pool Interface
-/// @notice An interface containing externally accessible functions of the StakingPool contract
+/// @title EthgasRebate Interface
+/// @notice An interface containing externally accessible functions of the EthgasRebate contract
 /// @dev The automatically generated public view functions for the state variables and mappings are not included in the interface
 interface IEthgasRebate{
 
@@ -80,9 +80,14 @@ interface IEthgasRebate{
 	);
 
     ///@notice Emitted when some calls the withdraws function to withdraw funds to the rewards contract. 
-	event Withdrawal(
-		address token, address receiver, uint256 amount
-	);
+    event Withdrawal(
+        address token, uint256 amount, address receiver
+    );
+
+    ///@notice Emitted when adminApprove approves a spender for tokens held by this contract.
+    event AdminApproval(
+        address token, uint256 amount, address spender
+    );
 
     /*//////////////////////////////////////////////////////////////
                             Admin Functions
@@ -101,20 +106,27 @@ interface IEthgasRebate{
     ///@dev Only callable by the owner
     function unpause() external;
 
-    ///@notice function to set the daily withdrawal cap 
-    ///@param _tokenAddr The token address of the cap to be implemeneted on. 
-    ///@param _cap The amount that is capped. 
-    function setDailyWithdrawalCap(address _tokenAddr, uint256 _cap) external;
+    ///@notice function to set the daily withdrawal cap
+    ///@param _tokenAddr The token addresses of the caps to be implemented on.
+    ///@param _cap The amounts that are capped.
+    function setDailyWithdrawalCap(address[] calldata _tokenAddr, uint256[] calldata _cap) external;
 
     ///@notice function to set depositor whitelist
     ///@param _depositorAddr The address of the depositor to be whitelisted.
     ///@param _status Enable or disaable whitelist.
     function setDepositorWhitelist(address[] calldata _depositorAddr, bool[] calldata _status) external;
 
-    ///@notice function withdraw funds from the rewards contract to admin. 
-    ///@param _tokenAddr, Token to withdraw 
-    ///@param amount Amount to withdraw
-    function adminWithdraw(address _tokenAddr, address _receiver, uint256 amount) external;
+    ///@notice function withdraw funds from the rewards contract to admin.
+    ///@param _tokenAddr Tokens to withdraw
+    ///@param amount Amounts to withdraw for each token
+    ///@param _receiver Receiver of the withdrawn tokens
+    function adminWithdraw(address[] calldata _tokenAddr, uint256[] calldata amount, address _receiver) external;
+
+    ///@notice function to approve a spender to use ERC20 tokens held by this contract
+    ///@param _tokenAddr The ERC20 tokens to approve
+    ///@param _amount The allowance amounts corresponding to each token
+    ///@param _spender The address to approve as spender
+    function adminApprove(address[] calldata _tokenAddr, uint256[] calldata _amount, address _spender) external;
 
     /*//////////////////////////////////////////////////////////////
                             Reward Claim Functions

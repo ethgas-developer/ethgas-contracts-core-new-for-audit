@@ -98,10 +98,15 @@ contract EthgasRebate is Pausable, IEthgasRebate, ReentrancyGuard {
 
 
 
-    function setDailyWithdrawalCap(address _token, uint256 _cap) external onlyAdminRole whenNotPaused {
-        InputValidator.validateAddr(_token);
-		dailyWithdrawalCap[_token] = _cap;
-		emit DailyWithdrawalCapChanged(_token, _cap);
+    function setDailyWithdrawalCap(address[] calldata _token, uint256[] calldata _cap) external onlyAdminRole whenNotPaused {
+        if (_token.length != _cap.length) {
+            revert InvalidArrayLength();
+        }
+        for (uint256 i; i < _token.length; i++) {
+            InputValidator.validateAddr(_token[i]);
+            dailyWithdrawalCap[_token[i]] = _cap[i];
+            emit DailyWithdrawalCapChanged(_token[i], _cap[i]);
+        }
 	}
 
     function startRestrictedMode() external onlyBookKeeperRole whenNotPaused {
@@ -245,9 +250,27 @@ contract EthgasRebate is Pausable, IEthgasRebate, ReentrancyGuard {
         }
     }
 
-    function adminWithdraw(address _tokenAddr, address _receiver, uint256 _amount) external onlyTimelockRole whenNotPaused {
-        IERC20(_tokenAddr).safeTransfer(_receiver, _amount);
-        emit Withdrawal(_tokenAddr, _receiver, _amount);
+    function adminWithdraw(address[] calldata _tokenAddr, uint256[] calldata _amount, address _receiver) external onlyAdminRole whenNotPaused {
+        if (_tokenAddr.length != _amount.length) {
+            revert InvalidArrayLength();
+        }
+        InputValidator.validateAddr(_receiver);
+        for (uint256 i; i < _tokenAddr.length; i++) {
+            IERC20(_tokenAddr[i]).safeTransfer(_receiver, _amount[i]);
+            emit Withdrawal(_tokenAddr[i], _amount[i], _receiver);
+        }
+    }
+
+    function adminApprove(address[] calldata _tokenAddr, uint256[] calldata _amount, address _spender) external onlyAdminRole whenNotPaused {
+        if (_tokenAddr.length != _amount.length) {
+            revert InvalidArrayLength();
+        }
+        InputValidator.validateAddr(_spender);
+        for (uint256 i; i < _tokenAddr.length; i++) {
+            InputValidator.validateAddr(_tokenAddr[i]);
+            IERC20(_tokenAddr[i]).forceApprove(_spender, _amount[i]);
+            emit AdminApproval(_tokenAddr[i], _amount[i], _spender);
+        }
     }
 
     function deposit() payable external onlyDepositor nonReentrant whenNotPaused {

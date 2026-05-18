@@ -22,6 +22,7 @@ const TOKEN_START_AMOUNT = parseTokenAmount("1", "WETH");
 const GAS_REBATE_CATEGORY = ethers.utils.formatBytes32String("GAS_REBATE");
 const AIRDROP_CATEGORY = ethers.utils.formatBytes32String("AIRDROP");
 const oneYearInSec = 3600 * 24 * 365
+const oneWeekInSec = 3600 * 24 * 7
 
 import hre from "hardhat";
 
@@ -29,12 +30,6 @@ const configObj = require(`../helpers/config/` + hre.network.name + `.json`);
 const tokensConfigObj = configObj['Tokens'];
 const MIN_DELAY_SECS = configObj["TimelockControllerMinDelayInSecond"]
 const addressObj = require(`../helpers/address/local.json`);
-let supportedTokensArr: string[] = []
-let dailyWithdrawalCapArr = []
-for (let tokenName of configObj["EthgasRebateSupportedTokens"]) {
-  dailyWithdrawalCapArr.push( parseTokenAmount(tokensConfigObj[tokenName].daily_withdrawal_cap.toString(), tokenName))
-  supportedTokensArr.push(addressObj[tokenName]["token_address"])
-}
 const WETH_ADDRESS = addressObj["WETH"]["token_address"];
 const USDT_ADDRESS = addressObj["USDT"]["token_address"];
 const GWEI_ADDRESS = addressObj["GWEI"]["token_address"];
@@ -179,7 +174,7 @@ describe("EthgasRebate to Voting Escrow", function () {
       await expect(tx).revertedWith("InvalidUnlockTime")
 
       // 2nd tx succeed
-      const user0UnlockTime = currentTimestamp + oneYearInSec * 2
+      const user0UnlockTime = Math.floor((currentTimestamp + oneYearInSec * 2) / oneWeekInSec) * oneWeekInSec;
       console.log("\nuser0 claim and stake 2 years")
       tx = ethgasRebate.connect(userSigners[0]).claimReward(
         [
@@ -189,7 +184,7 @@ describe("EthgasRebate to Voting Escrow", function () {
         proof,
         GAS_REBATE_CATEGORY,
         true,
-        user0UnlockTime
+        currentTimestamp + oneYearInSec * 2
       )
       await expect(tx).to.emit(ethgasRebate, "RewardClaimed")
         .withArgs(
@@ -229,6 +224,7 @@ describe("EthgasRebate to Voting Escrow", function () {
       const proof2 = merkleTree.getHexProof(leaf2);
       currentTimestamp = await getLatestBlockTimestamp()
 
+      let unlockTime = Math.floor((currentTimestamp + oneYearInSec) / oneWeekInSec) * oneWeekInSec;
       // 3rd claim and stake tx succeed
       console.log("\nuser1 claim and stake 1 year")
       tx = ethgasRebate.connect(userSigners[1]).claimReward(
@@ -247,11 +243,11 @@ describe("EthgasRebate to Voting Escrow", function () {
         )
       await expect(tx).to.emit(ethgasRebate, "RewardStaked")
         .withArgs(
-          user1Address, amount2, currentTimestamp + oneYearInSec
+          user1Address, amount2, unlockTime
         )
       console.log("Gwei claimed:", formatTokenAmount(amount2, "GWEI"))
       await expect(tx).emit(ethgasRebate, "RewardStaked")
-        .withArgs(user1Address, amount2, currentTimestamp + oneYearInSec);
+        .withArgs(user1Address, amount2, unlockTime);
       expect(await ethgasToken.balanceOf(user1Address)).to.equal(0);
       console.log("veGwei balance:", formatTokenAmount(await veToken.balanceOf(user1Address), "GWEI"))
 
@@ -270,9 +266,10 @@ describe("EthgasRebate to Voting Escrow", function () {
       const newTree = new MerkleTree(leaves, keccak256, { sortPairs: true });
       await ethgasRebateAsBookKeeper.startRestrictedMode();
       await ethgasRebateAsBookKeeper.updateMerkleRoot(newTree.getHexRoot(), GAS_REBATE_CATEGORY);
+      console.log("\nset the rebate category with 3-year staking duration")
       await ethgasRebateAsBookKeeper.updateMerkleRootInfo(true, oneYearInSec * 3, GAS_REBATE_CATEGORY);
       await ethgasRebateAsBookKeeper.endRestrictedMode();
-      console.log("\nuser0 cannot claim and stake again with an existing unlock duration shorter than the category defined 3-year duration")
+      console.log("user0 cannot claim and stake again with an existing unlock duration shorter than the category defined 3-year duration")
       const proof3 = newTree.getHexProof(leaves[1]);
       currentTimestamp = await getLatestBlockTimestamp()
       tx = ethgasRebate.connect(userSigners[0]).claimReward(
@@ -335,6 +332,7 @@ describe("EthgasRebate to Voting Escrow", function () {
       console.log("user0 fail to claim and stake again as the original lock expired")
       const proof4 = tree4.getHexProof(leaves4[1]);
       currentTimestamp = await getLatestBlockTimestamp()
+      unlockTime = Math.floor((currentTimestamp + oneYearInSec * 4) / oneWeekInSec) * oneWeekInSec;
       tx = ethgasRebate.connect(userSigners[0]).claimReward(
         [
           {user: user0Address, token: GWEI_ADDRESS, claimAmount: amount4}
@@ -365,10 +363,10 @@ describe("EthgasRebate to Voting Escrow", function () {
         )
       console.log("Gwei claimed:", formatTokenAmount(amount4, "GWEI"))
       await expect(tx).emit(ethgasRebate, "RewardStaked")
-        .withArgs(user0Address, amount4, currentTimestamp + oneYearInSec * 4);
+        .withArgs(user0Address, amount4, unlockTime);
       await expect(tx).to.emit(ethgasRebate, "RewardStaked")
         .withArgs(
-          user0Address, amount4, currentTimestamp + oneYearInSec * 4
+          user0Address, amount4, unlockTime
         )
       expect(await ethgasToken.balanceOf(user0Address)).to.equal(parseTokenAmount("162", "GWEI"));
       console.log("veGwei balance:", formatTokenAmount(await veToken.balanceOf(user0Address), "GWEI"))

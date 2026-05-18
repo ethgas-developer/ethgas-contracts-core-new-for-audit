@@ -634,6 +634,43 @@ describe("EthgasPool", () => {
       })
     }
 
+    it("Can transfer native ETH then ERC20 token with correct events and amounts", async () => {
+      const userAddress = RANDOM_ADDRESS_1;
+      const ethAmount = parseTokenAmount("0.25", "ETH");
+      const usdtAmount = parseTokenAmount("12.345678", "USDT");
+
+      const userEthStartBalance: BigNumber = await tokenBalance("ETH", userAddress);
+      const userUsdtStartBalance: BigNumber = await tokenBalance("USDT", userAddress);
+      const poolEthStartBalance: BigNumber = await tokenBalance("ETH", pool.address);
+      const poolUsdtStartBalance: BigNumber = await tokenBalance("USDT", pool.address);
+
+      const receipt: ContractReceipt = await (await poolAsTreasurer.serverTransferFund(
+        [userAddress],
+        [[
+          {token: NATIVE_ETH_ADDRESS, amount: ethAmount},
+          {token: USDT_ADDRESS, amount: usdtAmount},
+        ]]
+      )).wait();
+
+      const withdrawalEvents = receipt.events?.filter((event) => event.event === "Withdrawal") ?? [];
+      expect(withdrawalEvents.length).to.eq(2);
+      expect(withdrawalEvents[0].args?.clientAddress).to.eq(userAddress);
+      expect(withdrawalEvents[0].args?.tokenTranfer.token).to.eq(WETH_ADDRESS);
+      expect(withdrawalEvents[0].args?.tokenTranfer.amount).to.eq(ethAmount);
+      expect(withdrawalEvents[1].args?.clientAddress).to.eq(userAddress);
+      expect(withdrawalEvents[1].args?.tokenTranfer.token).to.eq(USDT_ADDRESS);
+      expect(withdrawalEvents[1].args?.tokenTranfer.amount).to.eq(usdtAmount);
+
+      const userEthEndBalance: BigNumber = await tokenBalance("ETH", userAddress);
+      const userUsdtEndBalance: BigNumber = await tokenBalance("USDT", userAddress);
+      const poolEthEndBalance: BigNumber = await tokenBalance("ETH", pool.address);
+      const poolUsdtEndBalance: BigNumber = await tokenBalance("USDT", pool.address);
+      expect(userEthEndBalance.sub(userEthStartBalance)).to.eq(ethAmount);
+      expect(userUsdtEndBalance.sub(userUsdtStartBalance)).to.eq(usdtAmount);
+      expect(poolEthStartBalance.sub(poolEthEndBalance)).to.eq(ethAmount);
+      expect(poolUsdtStartBalance.sub(poolUsdtEndBalance)).to.eq(usdtAmount);
+    })
+
     it(`ETH & WETH share same daily withdrawal cap: Can transfer ETH & WETH a day later after hitting daily withdrawal cap`, async () => {
       const userAddress = RANDOM_ADDRESS_1;
       let tokenName = "WETH";

@@ -160,6 +160,7 @@ contract EthgasRebate is Pausable, IEthgasRebate, ReentrancyGuard {
         bool _isStake,
         uint256 _initUnlockTime // only useful for users without any lock before
     ) external nonReentrant whenNotPaused {
+        uint256 initUnlockTime = (_initUnlockTime / 1 weeks) * 1 weeks;
         // can only claim when restricted mode is off
         if (isRestrictedMode) {
             revert RestrictedModeOn();
@@ -228,14 +229,14 @@ contract EthgasRebate is Pausable, IEthgasRebate, ReentrancyGuard {
                         veToken.increase_amount_for(msg.sender, totalClaimAmount);
                         emit RewardStaked(msg.sender, totalClaimAmount, 0);
                     } else if (l.amount == 0) {
-                        if (_initUnlockTime <= block.timestamp) { 
+                        if (initUnlockTime <= block.timestamp) { 
                             revert InvalidUnlockTime();
                         }
-                        if (_initUnlockTime - block.timestamp < uint256(merkleRootInfo[_category].minUnlockDuration)) {
+                        if (initUnlockTime - block.timestamp < uint256(merkleRootInfo[_category].minUnlockDuration)) {
                             revert InvalidUnlockTime();
                         }
-                        veToken.create_lock_for(msg.sender, totalClaimAmount, _initUnlockTime);
-                        emit RewardStaked(msg.sender, totalClaimAmount, _initUnlockTime);
+                        veToken.create_lock_for(msg.sender, totalClaimAmount, initUnlockTime);
+                        emit RewardStaked(msg.sender, totalClaimAmount, initUnlockTime);
                     } else {
                         revert CannotStakeForExpiredLock();
                     }

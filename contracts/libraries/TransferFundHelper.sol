@@ -27,6 +27,7 @@ library TransferFundHelper {
 				isNativeEth = true;
 				tt.token = weth;
 			} else {
+				isNativeEth = false;
 				token = IERC20(tt.token);
 			}
 			
